@@ -1,0 +1,8 @@
+{
+  "measured_at": "2026-07-20T15:00:00+02:00",
+  "t": 26.4, "rh": 55, "wind_kmh": 14, "wind_dir": 150,
+  "icon": "partly", "uv": 6,
+  "source": "stations",
+  "stations_used": ["BILJE"],
+  "hail": { "status": "low" }
+}

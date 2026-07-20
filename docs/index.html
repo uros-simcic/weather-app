@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brda – vreme</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="icons-holder"></div>
+
+<div class="page">
+  <header class="header">
+    <span class="header__place">Brda</span>
+    <div class="header__right">
+      <span id="header-date"></span>
+      <span id="header-clock" class="header__clock"></span>
+      <div class="header__sun-group">
+        <span class="header__sun">
+          <svg><use href="#icon-sunrise"></use></svg>
+          <span id="header-sunrise"></span>
+        </span>
+        <span class="header__sun">
+          <svg><use href="#icon-sunset"></use></svg>
+          <span id="header-sunset"></span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <div id="hail-pill" class="hail-pill card blur-panel" hidden></div>
+
+  <div id="today-row" class="row"></div>
+  <div id="week-row" class="row"></div>
+
+  <div id="links" class="links"></div>
+
+  <div class="panel card blur-panel">
+    <a href="https://meteo.arso.gov.si/met/sl/weather/observ/radar" target="_blank" rel="noopener noreferrer">
+      <img id="radar-img" alt="Radar padavin" loading="lazy" referrerpolicy="no-referrer">
+    </a>
+  </div>
+  <div class="panel card blur-panel">
+    <a href="https://meteo.arso.gov.si/met/sl/weather/observ/satelit" target="_blank" rel="noopener noreferrer">
+      <video id="satellite-video" autoplay loop muted playsinline aria-label="Satelitska slika oblačnosti">
+        <source type="video/mp4">
+      </video>
+    </a>
+  </div>
+
+  <footer class="footer">
+    Podatki: Open-Meteo (CC BY 4.0) · ARSO · ARPA FVG · GeoSphere Austria
+  </footer>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

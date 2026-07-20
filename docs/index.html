@@ -11,10 +11,12 @@
 
 <div class="page">
   <header class="header">
-    <span class="header__place">Brda</span>
-    <div class="header__right">
-      <span id="header-date"></span>
+    <div class="header__row1">
+      <span class="header__place">Brda</span>
       <span id="header-clock" class="header__clock"></span>
+    </div>
+    <div class="header__row2">
+      <span id="header-date"></span>
       <div class="header__sun-group">
         <span class="header__sun">
           <svg><use href="#icon-sunrise"></use></svg>
@@ -28,12 +30,12 @@
     </div>
   </header>
 
-  <div id="hail-pill" class="hail-pill card blur-panel" hidden></div>
-
   <div id="today-row" class="row"></div>
   <div id="week-row" class="row"></div>
 
   <div id="links" class="links"></div>
+
+  <div id="hail-pill" class="hail-pill card blur-panel" hidden></div>
 
   <div class="panel card blur-panel">
     <a href="https://meteo.arso.gov.si/met/sl/weather/observ/radar" target="_blank" rel="noopener noreferrer">

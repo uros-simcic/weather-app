@@ -5,8 +5,10 @@ const HAIL_TEXT = { low: 'nizka', medium: 'srednja', high: 'visoka' };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 
-function iconRef(name) {
-  return '#icon-' + (ICON_WHITELIST.has(name) ? name : 'cloud');
+function iconRef(name, drops) {
+  let resolved = ICON_WHITELIST.has(name) ? name : 'cloud';
+  if (resolved === 'rain') resolved = drops >= 2 ? 'rain-heavy' : 'rain-light';
+  return '#icon-' + resolved;
 }
 
 function compassLabel(deg) {
@@ -14,24 +16,13 @@ function compassLabel(deg) {
   return COMPASS[Math.round(deg / 45) % 8];
 }
 
-function makeIcon(name) {
+function makeIcon(name, drops) {
   const svg = document.createElementNS(SVGNS, 'svg');
   svg.classList.add('cell__icon');
   const use = document.createElementNS(SVGNS, 'use');
-  use.setAttribute('href', iconRef(name));
+  use.setAttribute('href', iconRef(name, drops));
   svg.appendChild(use);
   return svg;
-}
-
-function makeDrops(count) {
-  const wrap = document.createElement('div');
-  wrap.className = 'cell__drops';
-  for (let i = 0; i < 3; i++) {
-    const dot = document.createElement('span');
-    dot.className = 'cell__drop ' + (i < count ? 'cell__drop--filled' : 'cell__drop--empty');
-    wrap.appendChild(dot);
-  }
-  return wrap;
 }
 
 function makePop(pop) {
@@ -144,8 +135,7 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
   labelEl.textContent = label;
   cell.appendChild(labelEl);
 
-  cell.appendChild(makeIcon(icon));
-  cell.appendChild(makeDrops(drops || 0));
+  cell.appendChild(makeIcon(icon, drops || 0));
   cell.appendChild(makePop(pop));
   cell.appendChild(makeTemps(...temps));
   cell.appendChild(makeHumidityBadge(temps[temps.length - 1].value, rh));
@@ -231,8 +221,10 @@ function renderWeekRow(forecast) {
 function renderHailPill(now) {
   const pill = document.getElementById('hail-pill');
   const status = now.hail && now.hail.status;
+  pill.classList.remove('hail-pill--low', 'hail-pill--medium', 'hail-pill--high');
   if (status && status !== 'none' && HAIL_TEXT[status]) {
     pill.textContent = 'Toča — ' + HAIL_TEXT[status] + ' verjetnost';
+    pill.classList.add('hail-pill--' + status);
     pill.hidden = false;
   } else {
     pill.hidden = true;

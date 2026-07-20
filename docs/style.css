@@ -55,20 +55,19 @@ body {
 }
 
 /* Header */
-.header {
+.header { padding: 4px 4px 16px; font-size: 16px; }
+.header__row1, .header__row2 {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 4px 14px;
-  font-size: 11px;
   white-space: nowrap;
 }
-.header__place { font-size: 16px; font-weight: 500; flex-shrink: 0; }
-.header__right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.header__sun-group { display: flex; align-items: center; gap: 4px; margin-left: 20px; }
-.header__sun { display: flex; align-items: center; gap: 2px; }
-.header__sun svg { width: 13px; height: 13px; }
-.header__clock { font-weight: 500; font-size: 13px; }
+.header__row2 { margin-top: 4px; }
+.header__place { font-size: 22px; font-weight: 500; flex-shrink: 0; }
+.header__clock { font-weight: 500; font-size: 22px; margin-left: auto; }
+.header__sun-group { display: flex; align-items: center; gap: 6px; margin-left: 20px; }
+.header__sun { display: flex; align-items: center; gap: 3px; }
+.header__sun svg { width: 18px; height: 18px; }
 
 /* Rows */
 .row {
@@ -84,9 +83,9 @@ body {
 
 .cell {
   scroll-snap-align: start;
-  flex: 0 0 68px;
-  height: 176px;
-  padding: 10px 4px 8px;
+  flex: 0 0 92px;
+  height: 216px;
+  padding: 12px 4px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,55 +93,51 @@ body {
 }
 .cell--zdaj {
   background: rgba(255, 255, 255, .65);
-  border: 1px solid var(--blue-rain);
+  border: 2px solid var(--blue-rain);
 }
 
-.cell__label { font-size: 13px; font-weight: 400; color: var(--grey-label); }
-.cell__icon { width: 28px; height: 28px; margin: 4px 0; }
+.cell__label { font-size: 16px; font-weight: 400; color: var(--grey-label); }
+.cell__icon { width: 40px; height: 40px; margin: 4px 0; }
 
-.cell__drops { display: flex; gap: 2px; height: 8px; align-items: center; }
-.cell__drop { width: 6px; height: 6px; border-radius: 50%; }
-.cell__drop--filled { background: var(--blue-rain); }
-.cell__drop--empty { background: rgba(0, 0, 0, .12); }
+.cell__pop { font-size: 13px; color: var(--grey-muted); height: 17px; line-height: 17px; }
 
-.cell__pop { font-size: 11px; color: var(--grey-muted); height: 15px; line-height: 15px; }
-
-.cell__temps { display: flex; gap: 5px; font-size: 17px; font-weight: 500; margin-top: 2px; }
+.cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; margin-top: 2px; }
 .cell__temp--hot { color: var(--red); }
 .cell__temp--am { color: var(--grey-muted); }
 .cell__temp--pm { color: var(--near-black); }
 
 .badge {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   border-radius: 8px;
-  padding: 1px 6px;
-  margin-top: 4px;
-  height: 15px;
-  line-height: 15px;
+  padding: 1px 7px;
+  margin-top: 5px;
+  height: 19px;
+  line-height: 19px;
 }
 .badge--amber { color: var(--amber-text); background: var(--amber-bg); }
 .badge--red { color: var(--red); background: var(--red-bg); }
 .badge--neutral { color: var(--grey-label); background: var(--grey-neutral-bg); }
 .badge--spacer { visibility: hidden; }
 
-.cell__uv { font-size: 12px; font-weight: 500; height: 15px; line-height: 15px; margin-top: 2px; }
+.cell__uv { font-size: 15px; font-weight: 500; height: 18px; line-height: 18px; margin-top: 3px; }
 .cell__uv--green { color: #2f8f4e; }
 .cell__uv--amber { color: var(--amber-text); }
 .cell__uv--red { color: var(--red); }
 
-.cell__wind { margin-top: auto; width: 22px; height: 22px; }
+.cell__wind { margin-top: auto; width: 30px; height: 30px; }
 
 /* Hail pill */
 .hail-pill {
-  background: rgba(200, 40, 40, .18);
-  color: var(--red);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   text-align: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   margin-bottom: 10px;
 }
+.hail-pill--low { background: rgba(120, 120, 116, .2); color: var(--grey-label); }
+.hail-pill--medium { background: var(--amber-bg); color: var(--amber-text); }
+.hail-pill--high { background: var(--red-bg); color: var(--red); }
 
 /* Links */
 .links {
@@ -154,8 +149,8 @@ body {
 .links a {
   display: block;
   text-align: center;
-  padding: 9px 4px;
-  font-size: 13px;
+  padding: 13px 4px;
+  font-size: 16px;
   text-decoration: none;
   color: var(--near-black);
   text-transform: lowercase;
@@ -173,7 +168,7 @@ body {
 /* Footer */
 .footer {
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--grey-muted);
   padding-top: 6px;
 }

@@ -1,6 +1,6 @@
-# Brda Weather App
+# Weather App
 
-A single static page with one merged, locally-corrected weather forecast for
+A single static page with one merged, locally AI-corrected weather forecast for
 Brda, Slovenia — blended from multiple open forecast models, verified against
 regional station observations, with ARSO nowcast imagery (radar, satellite,
 hail). No backend: a GitHub Actions pipeline fetches data, applies an ML

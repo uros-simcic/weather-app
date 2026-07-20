@@ -12,26 +12,15 @@
   --near-black: #1c1c1a;
 }
 
-@font-face {
-  font-family: 'Inter';
-  font-weight: 400;
-  src: url('fonts/inter-400.woff2') format('woff2');
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Inter';
-  font-weight: 500;
-  src: url('fonts/inter-500.woff2') format('woff2');
-  font-display: swap;
-}
-
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   min-height: 100vh;
   background: linear-gradient(160deg, #e4e2dc, #cfd0d4);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* System-native stack: SF Pro on Apple, Segoe UI on Windows, Roboto on
+     ChromeOS/Android — matches each platform's own look, no font download. */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--near-black);
 }
 
@@ -55,19 +44,20 @@ body {
 }
 
 /* Header */
-.header { padding: 4px 4px 16px; font-size: 16px; }
-.header__row1, .header__row2 {
+.header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  padding: 4px 4px 14px;
+  font-size: 12px;
   white-space: nowrap;
 }
-.header__row2 { margin-top: 4px; }
-.header__place { font-size: 22px; font-weight: 500; flex-shrink: 0; }
-.header__clock { font-weight: 500; font-size: 22px; margin-left: auto; }
-.header__sun-group { display: flex; align-items: center; gap: 6px; margin-left: 20px; }
-.header__sun { display: flex; align-items: center; gap: 3px; }
-.header__sun svg { width: 18px; height: 18px; }
+.header__place { font-size: 14px; font-weight: 500; flex-shrink: 0; }
+.header__right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.header__sun-group { display: flex; align-items: center; gap: 3px; margin-left: 16px; }
+.header__sun { display: flex; align-items: center; gap: 2px; }
+.header__sun svg { width: 13px; height: 13px; }
+.header__clock { font-weight: 500; }
 
 /* Rows */
 .row {

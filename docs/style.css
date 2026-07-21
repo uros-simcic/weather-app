@@ -48,7 +48,7 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 8px 14px;
+  padding: 4px 8px 14px 14px;
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -87,11 +87,15 @@ body {
 }
 
 .cell__label { font-size: 16px; font-weight: 400; color: var(--grey-label); }
-.cell__icon { width: 40px; height: 40px; margin: 4px 0; }
+.cell__icon { width: 40px; height: 40px; margin: 4px 0; flex-shrink: 0; }
 
-.cell__pop { font-size: 15px; font-weight: 500; color: var(--grey-label); height: 19px; line-height: 19px; margin-top: 5px; }
+/* flex-shrink:0 on every indicator row: without it, an empty spacer (e.g.
+   zdaj's rain-% when there's no forecast pop) collapses to zero height while
+   siblings with real text don't, pushing that cell's temperature out of
+   alignment with the rest of the row. */
+.cell__pop { font-size: 15px; font-weight: 500; color: var(--grey-label); height: 19px; line-height: 19px; margin-top: 5px; flex-shrink: 0; }
 
-.cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; margin-top: 2px; }
+.cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; margin-top: 2px; flex-shrink: 0; }
 .cell__temp--hot { color: var(--red); }
 .cell__temp--am { color: var(--grey-muted); }
 .cell__temp--pm { color: var(--near-black); }
@@ -103,19 +107,20 @@ body {
   margin-top: 5px;
   height: 19px;
   line-height: 19px;
+  flex-shrink: 0;
 }
 .badge--amber { color: var(--amber-text); }
 .badge--red { color: var(--red); }
 .badge--neutral { color: var(--grey-label); }
 .badge--spacer { visibility: hidden; }
 
-.cell__uv { font-size: 15px; font-weight: 500; height: 18px; line-height: 18px; margin-top: 3px; }
+.cell__uv { font-size: 15px; font-weight: 500; height: 18px; line-height: 18px; margin-top: 3px; flex-shrink: 0; }
 .cell__uv--grey { color: var(--grey-label); }
 .cell__uv--amber { color: var(--amber-text); }
 .cell__uv--red { color: var(--red); }
 .cell__uv--bold { font-weight: 700; }
 
-.cell__wind { margin-top: auto; width: 30px; height: 30px; }
+.cell__wind { margin-top: auto; width: 30px; height: 30px; flex-shrink: 0; }
 
 /* Hail pill: low mirrors the link buttons (white, grey text); medium/high
    turn solid orange/red so an active warning reads clearly. */

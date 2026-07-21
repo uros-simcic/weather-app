@@ -39,7 +39,7 @@ def to_wide(rows):
     wide["lead_hours"] = float("nan")
     for model in OPEN_METEO_MODELS:
         if model not in wide.columns:
-            wide[model] = pd.NA
+            wide[model] = float("nan")  # pd.NA breaks .astype(float) downstream
         wide[f"{model}_avail"] = wide[model].notna().astype(int)
     return wide
 

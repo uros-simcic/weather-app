@@ -70,7 +70,7 @@ function makeUv(uv) {
   }
   let cls = 'cell__uv--grey';
   if (uv >= 8) cls = 'cell__uv--red cell__uv--bold';
-  else if (uv >= 3) cls = 'cell__uv--amber';
+  else if (uv >= 3) cls = 'cell__uv--orange';
   el.className = 'cell__uv ' + cls;
   el.textContent = 'UV ' + uv;
   el.setAttribute('aria-label', 'UV indeks ' + uv);
@@ -83,7 +83,7 @@ function makeUv(uv) {
 function windColor(speed) {
   if (speed >= 20) return '#c93636';
   if (speed >= 12) return '#c98a12';
-  return '#3a3a37';
+  return '#8a8a86';
 }
 
 function windFeathers(speed) {

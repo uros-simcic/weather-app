@@ -43,6 +43,11 @@ FVG_OBS_URL_TEMPLATE = "https://dev.meteo.fvg.it/xml/stazioni/{code}.xml"
 FVG_STATION_CAPRIVA = "CAP"   # 85m, ~5-6km from Brda
 FVG_STATION_CORMONS = "N602"  # 84m, ~5-6km from Brda
 
+# OSMER's forecast product is a qualitative regional bulletin (prose + symbol
+# codes + reliability %), not per-point numeric values — can't be blended as
+# a numeric model member. Logged as supplementary metadata only, not blended.
+FVG_FORECAST_URL_TEMPLATE = "https://dev.meteo.fvg.it/xml/previsioni/PW{date}.xml"
+
 RADAR_ANIM_URL = "https://meteo.arso.gov.si/uploads/probase/www/observ/radar/si0-rm-anim.gif"
 SATELLITE_ANIM_URL = "https://meteo.arso.gov.si/uploads/probase/www/observ/satellite/mtg_geocolor_si-neighbours_latest.mp4"
 
@@ -54,3 +59,10 @@ HAIL_INCA_BBOX = (12.1, 44.657, 17.44, 47.407)  # (min_lon, min_lat, max_lon, ma
 
 PRO_VREME_URL = "https://pro-vreme.net/index.php?id=2000&m=28"
 PRO_VREME_USER_AGENT = "brda-weather-app/1.0 (+https://github.com/uros-simcic/weather-app)"
+
+# Historical training data: ARSO's own archive is login-gated (verified: op=auth
+# redirect), so both training features and ground-truth targets come from
+# Open-Meteo, keeping the whole backfill on one no-auth, well-documented source.
+OPEN_METEO_HISTORICAL_FORECAST_URL = "https://historical-forecast-api.open-meteo.com/v1/forecast"
+OPEN_METEO_HISTORICAL_WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"
+TRAINING_HISTORY_START = "2021-06-01"  # Open-Meteo's archived model coverage begins ~2021

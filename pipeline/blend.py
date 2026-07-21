@@ -110,6 +110,17 @@ def load_decisions():
         return json.load(f)
 
 
+def ships_ml_blend(var, bucket, decisions):
+    """Exact bucket match if one exists; otherwise fall back to the
+    variable's only backtested signal ("unknown-horizon" — historical
+    archives can't carry real lead-time, see features.py) rather than
+    silently never using a model that's already proven to beat the mean."""
+    exact = decisions.get(f"{var}|{bucket}")
+    if exact is not None:
+        return exact == "lightgbm_blend"
+    return decisions.get(f"{var}|unknown-horizon") == "lightgbm_blend"
+
+
 def blend_hourly(data, now_dt, models, decisions):
     """Returns {var: {time_str: value}} for each of our training variables,
     plus raw per-model series for anything not in TRAIN_VARS (weather_code,
@@ -136,7 +147,7 @@ def blend_hourly(data, now_dt, models, decisions):
             if not member_values:
                 continue
 
-            if var in TRAIN_VARS and decisions.get(f"{var}|{bucket}") == "lightgbm_blend" and var in models:
+            if var in TRAIN_VARS and var in models and ships_ml_blend(var, bucket, decisions):
                 bundle = models[var]
                 row = {m: member_values.get(m) for m in OPEN_METEO_MODELS}
                 row.update({f"{m}_avail": 1 if m in member_values else 0 for m in OPEN_METEO_MODELS})

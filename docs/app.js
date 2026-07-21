@@ -1,7 +1,7 @@
 import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
-const HAIL_TEXT = { low: 'nizka', medium: 'srednja', high: 'visoka' };
+const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -69,7 +69,7 @@ function makeUv(uv) {
     return el;
   }
   let cls = 'cell__uv--grey';
-  if (uv >= 8) cls = 'cell__uv--red';
+  if (uv >= 8) cls = 'cell__uv--red cell__uv--bold';
   else if (uv >= 3) cls = 'cell__uv--amber';
   el.className = 'cell__uv ' + cls;
   el.textContent = 'UV ' + uv;
@@ -222,16 +222,13 @@ function renderWeekRow(forecast) {
 
 function renderHailPill(now) {
   const pill = document.getElementById('hail-pill');
-  const status = now.hail && now.hail.status;
+  const rawStatus = (now.hail && now.hail.status) || 'none';
+  const level = HAIL_LEVELS[rawStatus] ?? 0;
+  const tier = level >= 3 ? 'high' : level >= 2 ? 'medium' : 'low';
   pill.classList.remove('hail-pill--low', 'hail-pill--medium', 'hail-pill--high');
-  if (status && status !== 'none' && HAIL_TEXT[status]) {
-    const word = HAIL_TEXT[status];
-    pill.textContent = word.charAt(0).toUpperCase() + word.slice(1) + ' verjetnost toče.';
-    pill.classList.add('hail-pill--' + status);
-    pill.hidden = false;
-  } else {
-    pill.hidden = true;
-  }
+  pill.classList.add('hail-pill--' + tier);
+  pill.textContent = 'Verjetnost toče: ' + level + '/3';
+  pill.hidden = false;
 }
 
 function renderLinks() {

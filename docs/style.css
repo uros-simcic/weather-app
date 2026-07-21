@@ -113,6 +113,7 @@ body {
 .cell__uv--grey { color: var(--grey-label); }
 .cell__uv--amber { color: var(--amber-text); }
 .cell__uv--red { color: var(--red); }
+.cell__uv--bold { font-weight: 700; }
 
 .cell__wind { margin-top: auto; width: 30px; height: 30px; }
 

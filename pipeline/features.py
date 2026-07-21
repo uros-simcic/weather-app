@@ -30,24 +30,28 @@ TRAIN_VARS = ["temperature_2m", "relative_humidity_2m", "wind_speed_10m", "preci
 
 
 
+def _get_with_retry(url, params):
+    # A ~13-month hourly pull is a large response; the API has been observed
+    # to occasionally exceed a 60s timeout — retry with more headroom before
+    # giving up.
+    last_error = None
+    for timeout in (60, 120, 180):
+        try:
+            resp = requests.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            last_error = e
+    raise last_error
+
+
 def fetch_model_history(model, start_date, end_date):
     params = {
         "latitude": LAT, "longitude": LON, "timezone": TIMEZONE,
         "start_date": start_date, "end_date": end_date,
         "hourly": ",".join(TRAIN_VARS), "models": model,
     }
-    # A ~13-month single-model pull is a large response; the API has been
-    # observed to occasionally exceed a 60s timeout — one retry with more
-    # headroom before giving up on this member for the run.
-    last_error = None
-    for timeout in (60, 120):
-        try:
-            resp = requests.get(OPEN_METEO_HISTORICAL_FORECAST_URL, params=params, timeout=timeout)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as e:
-            last_error = e
-    raise last_error
+    return _get_with_retry(OPEN_METEO_HISTORICAL_FORECAST_URL, params)
 
 
 def fetch_truth_history(start_date, end_date):
@@ -56,9 +60,7 @@ def fetch_truth_history(start_date, end_date):
         "start_date": start_date, "end_date": end_date,
         "hourly": ",".join(TRAIN_VARS),
     }
-    resp = requests.get(OPEN_METEO_HISTORICAL_WEATHER_URL, params=params, timeout=60)
-    resp.raise_for_status()
-    return resp.json()
+    return _get_with_retry(OPEN_METEO_HISTORICAL_WEATHER_URL, params)
 
 
 def build_training_rows(start_date, end_date):

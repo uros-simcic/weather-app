@@ -34,7 +34,10 @@ jobs:
       - run: python3 pipeline/train.py
       - run: python3 pipeline/blend.py
 
+      # Runs even if an earlier step failed (e.g. a transient upstream API
+      # timeout) — commits whatever succeeded rather than losing it.
       - name: Commit changed files
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

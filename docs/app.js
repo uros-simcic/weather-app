@@ -68,25 +68,27 @@ function makeUv(uv) {
     el.className = 'cell__uv';
     return el;
   }
-  let cls = 'cell__uv--green';
+  let cls = 'cell__uv--grey';
   if (uv >= 8) cls = 'cell__uv--red';
-  else if (uv >= 6) cls = 'cell__uv--amber';
+  else if (uv >= 3) cls = 'cell__uv--amber';
   el.className = 'cell__uv ' + cls;
   el.textContent = 'UV ' + uv;
   el.setAttribute('aria-label', 'UV indeks ' + uv);
   return el;
 }
 
+// Simplified 3-tier scheme (calm/light hidden, then grey/orange/red) rather
+// than a full Beaufort scale — matches common consumer weather-app
+// conventions; the exact km/h cutoffs are a judgment call, not a standard.
 function windColor(speed) {
-  if (speed >= 30) return '#c93636';
-  if (speed >= 15) return '#c98a12';
+  if (speed >= 20) return '#c93636';
+  if (speed >= 12) return '#c98a12';
   return '#3a3a37';
 }
 
 function windFeathers(speed) {
-  if (speed >= 35) return 4;
-  if (speed >= 25) return 3;
-  if (speed >= 15) return 2;
+  if (speed >= 20) return 3;
+  if (speed >= 12) return 2;
   return 1;
 }
 
@@ -140,7 +142,7 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
   cell.appendChild(makeTemps(...temps));
   cell.appendChild(makeHumidityBadge(temps[temps.length - 1].value, rh));
   cell.appendChild(makeUv(uv));
-  if (wind_kmh != null) cell.appendChild(makeWindArrow(wind_dir, wind_kmh));
+  if (wind_kmh != null && wind_kmh > 5) cell.appendChild(makeWindArrow(wind_dir, wind_kmh));
 
   return cell;
 }
@@ -150,7 +152,7 @@ function renderHeader(forecast) {
   const dayName = new Intl.DateTimeFormat('sl-SI', { weekday: 'long', timeZone: 'Europe/Ljubljana' }).format(now);
   const dateStr = new Intl.DateTimeFormat('sl-SI', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Ljubljana' }).format(now);
   document.getElementById('header-date').textContent =
-    dayName.charAt(0).toUpperCase() + dayName.slice(1) + ', ' + dateStr.replace(/\./g, '.').replace(/\s/g, '');
+    dayName.charAt(0).toUpperCase() + dayName.slice(1) + ', ' + dateStr.replace(/\./g, '.').replace(/\s/g, '') + ',';
 
   document.getElementById('header-sunrise').textContent = forecast.sun.sunrise;
   document.getElementById('header-sunset').textContent = forecast.sun.sunset;
@@ -223,7 +225,8 @@ function renderHailPill(now) {
   const status = now.hail && now.hail.status;
   pill.classList.remove('hail-pill--low', 'hail-pill--medium', 'hail-pill--high');
   if (status && status !== 'none' && HAIL_TEXT[status]) {
-    pill.textContent = 'Toča — ' + HAIL_TEXT[status] + ' verjetnost';
+    const word = HAIL_TEXT[status];
+    pill.textContent = word.charAt(0).toUpperCase() + word.slice(1) + ' verjetnost toče.';
     pill.classList.add('hail-pill--' + status);
     pill.hidden = false;
   } else {

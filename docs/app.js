@@ -245,12 +245,83 @@ function renderLinks() {
   }
 }
 
+function panelFallback(panel, href, label) {
+  panel.innerHTML = '';
+  const a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.className = 'panel__fallback';
+  a.textContent = label;
+  panel.appendChild(a);
+}
+
 function renderPanels() {
   const radarImg = document.getElementById('radar-img');
+  radarImg.onerror = () => panelFallback(
+    document.getElementById('radar-panel'),
+    'https://meteo.arso.gov.si/met/sl/weather/observ/radar', 'Radar padavin (ARSO)');
   radarImg.src = RADAR_ANIM_URL;
+
   const satVideo = document.getElementById('satellite-video');
+  satVideo.onerror = () => panelFallback(
+    document.getElementById('satellite-panel'),
+    'https://meteo.arso.gov.si/met/sl/weather/observ/satelit', 'Satelitska slika (ARSO)');
   satVideo.querySelector('source').src = SATELLITE_ANIM_URL;
   satVideo.load();
+}
+
+function renderStaleBanner(forecast) {
+  const banner = document.getElementById('stale-banner');
+  const generated = new Date(forecast.generated_at);
+  const ageHours = (Date.now() - generated.getTime()) / 3600000;
+  if (ageHours > (forecast.stale_after_hours ?? 24)) {
+    const ts = new Intl.DateTimeFormat('sl-SI', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Ljubljana',
+    }).format(generated);
+    banner.textContent = 'Podatki zastareli (' + ts + ')';
+    banner.hidden = false;
+  } else {
+    banner.hidden = true;
+  }
+}
+
+// now.json can go missing or fail to parse (e.g. mid-write during a pipeline
+// run); fall back to the current forecast block's values and say so in the
+// console, never silently show stale/wrong data as if it were fresh (§7.8).
+function nowFromForecastFallback(forecast) {
+  const nowTs = Date.now();
+  const block = forecast.blocks.find((b) => new Date(b.start) <= nowTs && nowTs < new Date(b.end))
+    || forecast.blocks[0];
+  return {
+    t: block.t, rh: block.rh, wind_kmh: block.wind_kmh, wind_dir: block.wind_dir,
+    icon: block.icon, uv: block.uv, hail: { status: 'none' },
+  };
+}
+
+async function loadAndRender() {
+  let forecast;
+  try {
+    forecast = await fetch('forecast.json?t=' + Date.now()).then((r) => r.json());
+  } catch (e) {
+    console.error('forecast.json fetch/parse failed, keeping previous render', e);
+    return;
+  }
+
+  let now;
+  try {
+    now = await fetch('now.json?t=' + Date.now()).then((r) => r.json());
+    if (now == null || typeof now.t !== 'number') throw new Error('now.json missing expected fields');
+  } catch (e) {
+    console.error('now.json broken, falling back to current forecast block', e);
+    now = nowFromForecastFallback(forecast);
+  }
+
+  renderHeader(forecast);
+  renderStaleBanner(forecast);
+  renderTodayRow(forecast, now);
+  renderWeekRow(forecast);
+  renderHailPill(now);
 }
 
 async function init() {
@@ -260,17 +331,14 @@ async function init() {
   const iconsHolder = document.getElementById('icons-holder');
   iconsHolder.innerHTML = iconsText;
 
-  const [forecast, now] = await Promise.all([
-    fetch('forecast.json?t=' + Date.now()).then((r) => r.json()),
-    fetch('now.json?t=' + Date.now()).then((r) => r.json()),
-  ]);
-
-  renderHeader(forecast);
-  renderTodayRow(forecast, now);
-  renderWeekRow(forecast);
-  renderHailPill(now);
   renderLinks();
   renderPanels();
+  await loadAndRender();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') loadAndRender();
+  });
+  setInterval(loadAndRender, 30 * 60 * 1000);
 }
 
 init();

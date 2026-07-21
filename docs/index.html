@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://meteo.arso.gov.si; media-src https://meteo.arso.gov.si; connect-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'">
 <title>Brda – vreme</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -28,6 +29,8 @@
     </div>
   </header>
 
+  <div id="stale-banner" class="stale-banner" hidden></div>
+
   <div id="today-row" class="row"></div>
   <div id="week-row" class="row"></div>
 
@@ -35,12 +38,12 @@
 
   <div id="links" class="links"></div>
 
-  <div class="panel card blur-panel">
+  <div id="radar-panel" class="panel card blur-panel">
     <a href="https://meteo.arso.gov.si/met/sl/weather/observ/radar" target="_blank" rel="noopener noreferrer">
       <img id="radar-img" alt="Radar padavin" loading="lazy" referrerpolicy="no-referrer">
     </a>
   </div>
-  <div class="panel card blur-panel">
+  <div id="satellite-panel" class="panel card blur-panel">
     <a href="https://meteo.arso.gov.si/met/sl/weather/observ/satelit" target="_blank" rel="noopener noreferrer">
       <video id="satellite-video" autoplay loop muted playsinline aria-label="Satelitska slika oblačnosti">
         <source type="video/mp4">

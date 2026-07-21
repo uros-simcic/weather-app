@@ -49,15 +49,15 @@ body {
   align-items: center;
   gap: 5px;
   padding: 4px 4px 14px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
 }
-.header__place { font-size: 14px; font-weight: 500; flex-shrink: 0; }
+.header__place { font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .header__right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .header__sun-group { display: flex; align-items: center; gap: 3px; margin-left: 16px; }
 .header__sun { display: flex; align-items: center; gap: 2px; }
 .header__sun svg { width: 13px; height: 13px; }
-.header__clock { font-weight: 500; }
 
 /* Rows */
 .row {
@@ -117,17 +117,20 @@ body {
 
 .cell__wind { margin-top: auto; width: 30px; height: 30px; }
 
-/* Hail pill */
+/* Hail pill: low mirrors the link buttons (white, grey text); medium/high
+   turn solid orange/red so an active warning reads clearly. */
 .hail-pill {
+  display: block;
   font-size: 16px;
   font-weight: 500;
   text-align: center;
-  padding: 10px 12px;
+  text-decoration: none;
+  padding: 13px 12px;
   margin-bottom: 10px;
 }
-.hail-pill--low { background: rgba(120, 120, 116, .2); color: var(--grey-label); }
-.hail-pill--medium { background: var(--amber-bg); color: var(--amber-text); }
-.hail-pill--high { background: var(--red-bg); color: var(--red); }
+.hail-pill--low { color: var(--grey-label); }
+.hail-pill--medium { background: #d9820a; color: #fff; }
+.hail-pill--high { background: #c93636; color: #fff; }
 
 /* Links */
 .links {

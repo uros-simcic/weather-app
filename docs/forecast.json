@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-21T16:04:49.593016+02:00",
+  "generated_at": "2026-07-21T18:17:35.284195+02:00",
   "coords": {
     "lat": 45.997,
     "lon": 13.526,
@@ -96,7 +96,7 @@
         "gfs_seamless",
         "geosphere_arome_austria"
       ],
-      "pop": 45
+      "pop": 35
     },
     {
       "start": "2026-07-21T11:00:00+02:00",
@@ -118,7 +118,7 @@
         "gfs_seamless",
         "geosphere_arome_austria"
       ],
-      "pop": 85
+      "pop": 75
     },
     {
       "start": "2026-07-21T14:00:00+02:00",
@@ -126,11 +126,11 @@
       "label": "14-17",
       "icon": "cloud",
       "t": 27,
-      "rh": 48,
+      "rh": 47,
       "uv": 6,
       "wind_kmh": 16,
-      "wind_dir": 70,
-      "precip_mm": 0.5,
+      "wind_dir": 66,
+      "precip_mm": 0.7,
       "drops": 1,
       "members_used": [
         "italia_meteo_arpae_icon_2i",
@@ -140,18 +140,40 @@
         "gfs_seamless",
         "geosphere_arome_austria"
       ],
-      "pop": 90
+      "pop": 85
     },
     {
       "start": "2026-07-21T17:00:00+02:00",
       "end": "2026-07-21T20:00:00+02:00",
       "label": "17-20",
-      "icon": "cloud",
-      "t": 25,
-      "rh": 54,
+      "icon": "fog",
+      "t": 23,
+      "rh": 60,
       "uv": 4,
-      "wind_kmh": 17,
-      "wind_dir": 62,
+      "wind_kmh": 19,
+      "wind_dir": 59,
+      "precip_mm": 3.7,
+      "drops": 2,
+      "members_used": [
+        "italia_meteo_arpae_icon_2i",
+        "icon_d2",
+        "icon_eu",
+        "ecmwf_ifs025",
+        "gfs_seamless",
+        "geosphere_arome_austria"
+      ],
+      "pop": 55
+    },
+    {
+      "start": "2026-07-21T20:00:00+02:00",
+      "end": "2026-07-21T23:00:00+02:00",
+      "label": "20-23",
+      "icon": "cloud",
+      "t": 21,
+      "rh": 69,
+      "uv": 0,
+      "wind_kmh": 13,
+      "wind_dir": 69,
       "precip_mm": 0.1,
       "drops": 0,
       "members_used": [
@@ -162,29 +184,7 @@
         "gfs_seamless",
         "geosphere_arome_austria"
       ],
-      "pop": 50
-    },
-    {
-      "start": "2026-07-21T20:00:00+02:00",
-      "end": "2026-07-21T23:00:00+02:00",
-      "label": "20-23",
-      "icon": "fog",
-      "t": 21,
-      "rh": 70,
-      "uv": 0,
-      "wind_kmh": 11,
-      "wind_dir": 95,
-      "precip_mm": 0.8,
-      "drops": 1,
-      "members_used": [
-        "italia_meteo_arpae_icon_2i",
-        "icon_d2",
-        "icon_eu",
-        "ecmwf_ifs025",
-        "gfs_seamless",
-        "geosphere_arome_austria"
-      ],
-      "pop": 25
+      "pop": 30
     }
   ],
   "days": [
@@ -193,25 +193,25 @@
       "name": "TOR",
       "icon": "rain",
       "t_am": 25,
-      "t_pm": 27,
-      "rh_pm": 47,
+      "t_pm": 28,
+      "rh_pm": 44,
       "uv_max": 6,
-      "wind_kmh": 17,
-      "wind_dir": 62,
-      "precip_mm": 3.8,
-      "drops": 1,
-      "pop": 90
+      "wind_kmh": 19,
+      "wind_dir": 59,
+      "precip_mm": 6.8,
+      "drops": 2,
+      "pop": 85
     },
     {
       "date": "2026-07-22",
       "name": "SRE",
-      "icon": "partly",
+      "icon": "sun",
       "t_am": 24,
-      "t_pm": 28,
-      "rh_pm": 31,
+      "t_pm": 27,
+      "rh_pm": 32,
       "uv_max": 7,
       "wind_kmh": 12,
-      "wind_dir": 240,
+      "wind_dir": 238,
       "precip_mm": 0.0,
       "drops": 0,
       "pop": 5
@@ -219,27 +219,27 @@
     {
       "date": "2026-07-23",
       "name": "ČET",
-      "icon": "cloud",
+      "icon": "rain",
       "t_am": 24,
-      "t_pm": 26,
-      "rh_pm": 53,
+      "t_pm": 27,
+      "rh_pm": 47,
       "uv_max": 6,
       "wind_kmh": 11,
-      "wind_dir": 214,
-      "precip_mm": 3.7,
-      "drops": 1,
+      "wind_dir": 222,
+      "precip_mm": 0.9,
+      "drops": 0,
       "pop": 80
     },
     {
       "date": "2026-07-24",
       "name": "PET",
       "icon": "cloud",
-      "t_am": 24,
+      "t_am": 23,
       "t_pm": 28,
-      "rh_pm": 25,
+      "rh_pm": 26,
       "uv_max": 7,
-      "wind_kmh": 13,
-      "wind_dir": 234,
+      "wind_kmh": 17,
+      "wind_dir": 227,
       "precip_mm": 0.2,
       "drops": 0,
       "pop": 10
@@ -250,11 +250,11 @@
       "icon": "cloud",
       "t_am": 24,
       "t_pm": 28,
-      "rh_pm": 36,
+      "rh_pm": 37,
       "uv_max": 7,
       "wind_kmh": 16,
-      "wind_dir": 215,
-      "precip_mm": 0.0,
+      "wind_dir": 212,
+      "precip_mm": 0.1,
       "drops": 0,
       "pop": 5
     },
@@ -262,13 +262,13 @@
       "date": "2026-07-26",
       "name": "NED",
       "icon": "rain",
-      "t_am": 22,
+      "t_am": 21,
       "t_pm": 20,
       "rh_pm": 94,
       "uv_max": 3,
       "wind_kmh": 8,
-      "wind_dir": 104,
-      "precip_mm": 30.3,
+      "wind_dir": 140,
+      "precip_mm": 26.3,
       "drops": 3,
       "pop": 70
     },

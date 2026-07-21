@@ -1,0 +1,235 @@
+"""Fetch station observations, log them for training, and compute "zdaj".
+
+ARSO's observation archive requires a login (verified), so unlike the spec's
+literal "pull yesterday's obs once daily" plan, this script logs every run's
+readings (called every 30 min by now.yml) to data/log_obs.csv — finer-grained
+than a daily backfill would have been, and needs no credentials.
+
+FVG stations are logged for training only, never surfaced in now.json/zdaj —
+their feed carries a 24h no-republish clause on real-time data.
+"""
+import csv
+import json
+import os
+import sys
+from datetime import datetime, timedelta
+from statistics import median
+from zoneinfo import ZoneInfo
+
+import requests
+
+sys.path.insert(0, os.path.dirname(__file__))
+from config import (
+    ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
+    FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS, TIMEZONE,
+)
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
+LOG_PATH = os.path.join(DATA_DIR, "log_obs.csv")
+NOW_PATH = os.path.join(SITE_DIR, "now.json")
+FORECAST_PATH = os.path.join(SITE_DIR, "forecast.json")
+CSV_FIELDS = ["obs_time", "station", "network", "variable", "value"]
+
+# ARSO's own live-conditions viewer publishes with ~2h10m lag (verified: at
+# 12:00 real time, the latest bucket was 09:50) — the spec's 45-min threshold
+# assumed near-real-time publishing that doesn't match reality; at 45 min every
+# station would always read stale and zdaj would never show real measurements.
+STALE_MINUTES = 150
+SANITY_BOUNDS = {
+    "temperature_2m": (-25, 45), "relative_humidity_2m": (1, 100),
+    "wind_speed_10m": (0, 180),
+}
+
+
+def append_log(rows):
+    if not rows:
+        return
+    os.makedirs(DATA_DIR, exist_ok=True)
+    is_new = not os.path.exists(LOG_PATH)
+    with open(LOG_PATH, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        if is_new:
+            writer.writeheader()
+        writer.writerows(rows)
+
+
+def fetch_arso_stations(now_dt):
+    """ARSO publishes all stations in one JSON per 10-min bucket, with a
+    publishing lag — the current bucket often 404s, so step back until one exists."""
+    base = now_dt - timedelta(minutes=now_dt.minute % 10, seconds=now_dt.second)
+    data = None
+    for steps_back in range(20):  # covers the verified ~2h10m publish lag
+        bucket = base - timedelta(minutes=10 * steps_back)
+        url = ARSO_OBS_URL_TEMPLATE.format(timestamp=bucket.strftime("%Y%m%d-%H%M"))
+        try:
+            resp = requests.get(url, timeout=20)
+            if resp.status_code == 404:
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            break
+        except (requests.RequestException, ValueError) as e:
+            print(f"arso obs: request failed ({e})", file=sys.stderr)
+    if data is None:
+        print("arso obs: no bucket found in last 200 minutes", file=sys.stderr)
+        return {}
+
+    wanted = {ARSO_STATION_BILJE: "BILJE", ARSO_STATION_NOVA_GORICA: "NOVA_GORICA"}
+    out = {}
+    for feature in data.get("features", []):
+        props = feature["properties"]
+        code = props.get("station")
+        if code not in wanted:
+            continue
+        days = props.get("days", [])
+        if not days or not days[0].get("timeline"):
+            continue
+        entry = days[0]["timeline"][0]
+        obs_time = datetime.fromisoformat(entry["valid"]).astimezone(now_dt.tzinfo).replace(tzinfo=None)
+        out[wanted[code]] = {
+            "obs_time": obs_time,
+            "temperature_2m": _to_float(entry.get("t")),
+            "relative_humidity_2m": _to_float(entry.get("rh")),
+            "wind_speed_10m": _to_float(entry.get("ff_val")),
+            "wind_direction_10m": _to_float(entry.get("dd_val")),
+        }
+    return out
+
+
+def fetch_fvg_stations():
+    wanted = {FVG_STATION_CAPRIVA: "CAPRIVA", FVG_STATION_CORMONS: "CORMONS"}
+    out = {}
+    for code, name in wanted.items():
+        try:
+            resp = requests.get(FVG_OBS_URL_TEMPLATE.format(code=code), timeout=20)
+            resp.raise_for_status()
+            xml = resp.text
+        except requests.RequestException as e:
+            print(f"fvg obs {code}: request failed ({e})", file=sys.stderr)
+            continue
+        obs_time_m = re_search(r"<observation_time>([^<]+)</observation_time>", xml)
+        t_m = re_search(r'<t180[^>]*>([^<]+)</t180>', xml)
+        v_m = re_search(r'<v10[^>]*>([^<]+)</v10>', xml)
+        if not obs_time_m:
+            continue
+        try:
+            obs_time = datetime.strptime(obs_time_m, "%d/%m/%Y %H.%M UTC")
+        except ValueError:
+            continue
+        out[name] = {
+            "obs_time": obs_time,
+            "temperature_2m": _to_float(t_m),
+            "wind_speed_10m": _to_float(v_m),
+        }
+    return out
+
+
+def re_search(pattern, text):
+    import re
+    m = re.search(pattern, text)
+    return m.group(1) if m else None
+
+
+def _to_float(v):
+    if v in (None, ""):
+        return None
+    try:
+        return float(v)
+    except ValueError:
+        return None
+
+
+def build_log_rows(now_dt, arso, fvg):
+    rows = []
+    for station, network, readings in (
+        [(k, "arso", v) for k, v in arso.items()] + [(k, "fvg", v) for k, v in fvg.items()]
+    ):
+        obs_time = readings["obs_time"].isoformat()
+        for var, value in readings.items():
+            if var == "obs_time" or value is None:
+                continue
+            rows.append({"obs_time": obs_time, "station": station,
+                         "network": network, "variable": var, "value": value})
+    return rows
+
+
+def compute_zdaj(now_dt, arso):
+    """Staleness + sanity-bounded median across ARSO stations only (§4.2)."""
+    fresh = {}
+    for station, readings in arso.items():
+        age_min = (now_dt - readings["obs_time"]).total_seconds() / 60
+        if age_min > STALE_MINUTES:
+            continue
+        fresh[station] = readings
+
+    result = {}
+    for var, bounds in SANITY_BOUNDS.items():
+        values = [r[var] for r in fresh.values() if r.get(var) is not None]
+        values = [v for v in values if bounds[0] <= v <= bounds[1]]
+        if values:
+            result[var] = round(median(values), 1)
+
+    # Direction is circular — a plain median is meaningless (median of 350°/10°
+    # isn't 180°) — take it from whichever fresh station reported most recently.
+    freshest = sorted(fresh.values(), key=lambda r: r["obs_time"], reverse=True)
+    for r in freshest:
+        if r.get("wind_direction_10m") is not None:
+            result["wind_direction_10m"] = r["wind_direction_10m"]
+            break
+
+    return result, list(fresh.keys())
+
+
+def current_hour_icon_uv(now_dt):
+    """Borrow icon/uv from the blended forecast — stations don't report either."""
+    try:
+        with open(FORECAST_PATH) as f:
+            forecast = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return "cloud", 0
+    for block in forecast.get("blocks", []):
+        start = datetime.fromisoformat(block["start"]).replace(tzinfo=None)
+        end = datetime.fromisoformat(block["end"]).replace(tzinfo=None)
+        if start <= now_dt < end:
+            return block.get("icon", "cloud"), block.get("uv", 0)
+    return "cloud", 0
+
+
+def write_now_json(now_dt, zdaj, stations_used):
+    icon, uv = current_hour_icon_uv(now_dt)
+    payload = {
+        "measured_at": now_dt.isoformat(),
+        "t": zdaj.get("temperature_2m"),
+        "rh": zdaj.get("relative_humidity_2m"),
+        "wind_kmh": zdaj.get("wind_speed_10m"),
+        "wind_dir": zdaj.get("wind_direction_10m"),
+        "icon": icon, "uv": uv,
+        "source": "stations" if stations_used else "model_fallback",
+        "stations_used": stations_used,
+        "hail": {"status": "none"},  # fetch_hail.py updates this key afterward
+    }
+    os.makedirs(SITE_DIR, exist_ok=True)
+    with open(NOW_PATH, "w") as f:
+        json.dump(payload, f, indent=2)
+
+
+def main():
+    latest = "--latest" in sys.argv
+    tz = ZoneInfo(TIMEZONE)
+    now_dt = datetime.now(tz).replace(second=0, microsecond=0, tzinfo=None)
+
+    arso = fetch_arso_stations(now_dt)
+    fvg = fetch_fvg_stations()
+    append_log(build_log_rows(now_dt, arso, fvg))
+
+    if latest:
+        zdaj, stations_used = compute_zdaj(now_dt, arso)
+        write_now_json(now_dt, zdaj, stations_used)
+        print(f"zdaj: {zdaj} from {stations_used}")
+
+    print(f"logged {len(arso)} ARSO + {len(fvg)} FVG station readings")
+
+
+if __name__ == "__main__":
+    main()

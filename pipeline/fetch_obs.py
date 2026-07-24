@@ -21,8 +21,10 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
     ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
-    FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS, TIMEZONE,
+    ELEVATION, FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS,
+    LAT, LON, OPEN_METEO_URL, TIMEZONE,
 )
+from features import wmo_to_icon
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
@@ -178,7 +180,58 @@ def compute_zdaj(now_dt, arso):
             result["wind_direction_10m"] = r["wind_direction_10m"]
             break
 
-    return result, list(fresh.keys())
+    latest_obs_time = freshest[0]["obs_time"] if freshest else None
+    return result, list(fresh.keys()), latest_obs_time
+
+
+def fetch_model_hourly(now_dt):
+    """Small Open-Meteo call used two ways: (a) lag-correcting stale station
+    readings — ARSO publishes ~2h behind, which during a fast morning warm-up
+    made zdaj show 16° while it was really 21° — and (b) the zdaj icon/UV,
+    so those no longer depend on forecast.json being fresh."""
+    params = {
+        "latitude": LAT, "longitude": LON, "elevation": ELEVATION,
+        "timezone": TIMEZONE, "past_days": 1, "forecast_days": 1,
+        "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index",
+    }
+    try:
+        resp = requests.get(OPEN_METEO_URL, params=params, timeout=20)
+        resp.raise_for_status()
+        return resp.json().get("hourly")
+    except (requests.RequestException, ValueError) as e:
+        print(f"model hourly: request failed ({e})", file=sys.stderr)
+        return None
+
+
+def _model_at(hourly, var, dt):
+    key = dt.strftime("%Y-%m-%dT%H:00")
+    times = hourly.get("time", [])
+    try:
+        i = times.index(key)
+    except ValueError:
+        return None
+    series = hourly.get(var)
+    return series[i] if series and i < len(series) and series[i] is not None else None
+
+
+def apply_lag_correction(zdaj, obs_time, now_dt, hourly):
+    """Advance a stale station reading along the model's own hour-to-hour
+    slope: corrected = measured + (model[now] - model[obs_hour]). The delta is
+    capped so a model glitch can't swing the display wildly."""
+    if hourly is None or obs_time is None:
+        return zdaj
+    for var, cap in (("temperature_2m", 6.0), ("relative_humidity_2m", 25.0)):
+        if var not in zdaj:
+            continue
+        m_now = _model_at(hourly, var, now_dt)
+        m_obs = _model_at(hourly, var, obs_time)
+        if m_now is None or m_obs is None:
+            continue
+        delta = max(-cap, min(cap, m_now - m_obs))
+        zdaj[var] = round(zdaj[var] + delta, 1)
+    if "relative_humidity_2m" in zdaj:
+        zdaj["relative_humidity_2m"] = min(100.0, max(1.0, zdaj["relative_humidity_2m"]))
+    return zdaj
 
 
 def current_hour_icon_uv(now_dt):
@@ -196,8 +249,19 @@ def current_hour_icon_uv(now_dt):
     return "cloud", 0
 
 
-def write_now_json(now_dt, zdaj, stations_used):
-    icon, uv = current_hour_icon_uv(now_dt)
+def write_now_json(now_dt, zdaj, stations_used, hourly=None):
+    icon, uv = None, None
+    if hourly is not None:
+        code = _model_at(hourly, "weather_code", now_dt)
+        model_uv = _model_at(hourly, "uv_index", now_dt)
+        if code is not None:
+            icon = wmo_to_icon(code)
+        if model_uv is not None:
+            uv = round(model_uv)
+    if icon is None or uv is None:
+        fb_icon, fb_uv = current_hour_icon_uv(now_dt)
+        icon = icon if icon is not None else fb_icon
+        uv = uv if uv is not None else fb_uv
     payload = {
         "measured_at": now_dt.isoformat(),
         "t": zdaj.get("temperature_2m"),
@@ -224,9 +288,11 @@ def main():
     append_log(build_log_rows(now_dt, arso, fvg))
 
     if latest:
-        zdaj, stations_used = compute_zdaj(now_dt, arso)
-        write_now_json(now_dt, zdaj, stations_used)
-        print(f"zdaj: {zdaj} from {stations_used}")
+        zdaj, stations_used, latest_obs_time = compute_zdaj(now_dt, arso)
+        hourly = fetch_model_hourly(now_dt)
+        zdaj = apply_lag_correction(zdaj, latest_obs_time, now_dt, hourly)
+        write_now_json(now_dt, zdaj, stations_used, hourly)
+        print(f"zdaj: {zdaj} from {stations_used} (obs {latest_obs_time})")
 
     print(f"logged {len(arso)} ARSO + {len(fvg)} FVG station readings")
 

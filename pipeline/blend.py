@@ -17,7 +17,7 @@ from config import (
     ELEVATION, LAT, LON, OPEN_METEO_DAILY_VARS, OPEN_METEO_HOURLY_VARS,
     OPEN_METEO_MODELS, OPEN_METEO_URL, TIMEZONE,
 )
-from features import TRAIN_VARS, lead_bucket
+from features import TRAIN_VARS, lead_bucket, wmo_to_icon
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 MODELS_DIR = os.path.join(DATA_DIR, "models")
@@ -28,27 +28,6 @@ FORECAST_PATH = os.path.join(SITE_DIR, "forecast.json")
 BLOCK_LABELS = ["23-02", "02-05", "05-08", "08-11", "11-14", "14-17", "17-20", "20-23"]
 # storm > snow > rain > fog > cloud > partly > sun (spec §7.2)
 ICON_SEVERITY = ["sun", "partly", "cloud", "fog", "rain", "snow", "storm"]
-
-
-def wmo_to_icon(code):
-    if code is None:
-        return "cloud"
-    code = int(code)
-    if code in (0, 1):
-        return "sun"
-    if code == 2:
-        return "partly"
-    if code == 3:
-        return "cloud"
-    if code in (45, 48):
-        return "fog"
-    if 51 <= code <= 67 or 80 <= code <= 82:
-        return "rain"
-    if 71 <= code <= 77 or code in (85, 86):
-        return "snow"
-    if 95 <= code <= 99:
-        return "storm"
-    return "cloud"
 
 
 def worst_icon(icons):

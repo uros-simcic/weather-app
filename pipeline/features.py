@@ -114,3 +114,26 @@ def lead_bucket(lead_hours):
     if lead_hours <= 120:
         return "3-5d"
     return "5-10d"
+
+
+def wmo_to_icon(code):
+    """WMO weather_code -> icon name per spec §7.5. Shared by blend.py
+    (forecast blocks/days) and fetch_obs.py (zdaj icon)."""
+    if code is None:
+        return "cloud"
+    code = int(code)
+    if code in (0, 1):
+        return "sun"
+    if code == 2:
+        return "partly"
+    if code == 3:
+        return "cloud"
+    if code in (45, 48):
+        return "fog"
+    if 51 <= code <= 67 or 80 <= code <= 82:
+        return "rain"
+    if 71 <= code <= 77 or code in (85, 86):
+        return "snow"
+    if 95 <= code <= 99:
+        return "storm"
+    return "cloud"

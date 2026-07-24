@@ -204,3 +204,21 @@ body {
   color: var(--grey-muted);
   padding-top: 6px;
 }
+
+/* Desktop: the phone column (400px) is a hard-to-read strip on a big screen.
+   Widen the page so both day rows show all their cells without a scroller
+   (mobile keeps the horizontal scroll). The header/pill/links/images/footer
+   stay a comfortable centered width so images don't upscale into a blur. */
+@media (min-width: 760px) {
+  .page { max-width: 1000px; }
+  .header,
+  .stale-banner,
+  .hail-pill,
+  .links,
+  .panel,
+  .footer {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

@@ -137,12 +137,25 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
   labelEl.textContent = label;
   cell.appendChild(labelEl);
 
-  cell.appendChild(makeIcon(icon, drops || 0));
-  cell.appendChild(makePop(pop));
+  const iconPop = document.createElement('div');
+  iconPop.className = 'cell__iconpop';
+  iconPop.appendChild(makeIcon(icon, drops || 0));
+  iconPop.appendChild(makePop(pop));
+  cell.appendChild(iconPop);
+
   cell.appendChild(makeTemps(...temps));
   cell.appendChild(makeHumidityBadge(temps[temps.length - 1].value, rh));
   cell.appendChild(makeUv(uv));
-  if (wind_kmh != null && wind_kmh > 5) cell.appendChild(makeWindArrow(wind_dir, wind_kmh));
+
+  // Calm wind renders an invisible spacer, not nothing — the cell uses
+  // space-between, so a missing slot would redistribute all the others.
+  if (wind_kmh != null && wind_kmh > 5) {
+    cell.appendChild(makeWindArrow(wind_dir, wind_kmh));
+  } else {
+    const spacer = document.createElementNS(SVGNS, 'svg');
+    spacer.classList.add('cell__wind', 'cell__wind--spacer');
+    cell.appendChild(spacer);
+  }
 
   return cell;
 }
@@ -335,9 +348,14 @@ async function init() {
   renderPanels();
   await loadAndRender();
 
+  // Mobile browsers suspend timers aggressively; pageshow/focus cover the
+  // wake-up paths visibilitychange misses, so a reopened page can't keep
+  // showing hours-old zdaj values.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') loadAndRender();
   });
+  window.addEventListener('pageshow', loadAndRender);
+  window.addEventListener('focus', loadAndRender);
   setInterval(loadAndRender, 30 * 60 * 1000);
 }
 

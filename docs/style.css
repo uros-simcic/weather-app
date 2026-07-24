@@ -74,13 +74,17 @@ body {
 }
 .row::-webkit-scrollbar { display: none; }
 
+/* flex-basis must exceed the widest content (two 25px temps ≈ 100px): flex
+   items can't shrink below min-content, so week cells silently grew wider
+   than today cells at 92px — the rows only match when the basis fits both. */
 .cell {
   scroll-snap-align: start;
-  flex: 0 0 92px;
-  height: 256px;
-  padding: 14px 4px 12px;
+  flex: 0 0 106px;
+  height: 280px;
+  padding: 12px 4px 12px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: center;
   text-align: center;
 }
@@ -90,15 +94,19 @@ body {
 }
 
 .cell__label { font-size: 16px; font-weight: 400; color: var(--grey-label); }
-.cell__icon { width: 40px; height: 40px; margin: 4px 0; flex-shrink: 0; }
+
+/* Icon and rain-% stay one tight unit (the % belongs to the rain symbol);
+   the cell's space-between then spreads the units evenly down the column. */
+.cell__iconpop { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; }
+.cell__icon { width: 40px; height: 40px; flex-shrink: 0; }
 
 /* flex-shrink:0 on every indicator row: without it, an empty spacer (e.g.
    zdaj's rain-% when there's no forecast pop) collapses to zero height while
    siblings with real text don't, pushing that cell's temperature out of
    alignment with the rest of the row. */
-.cell__pop { font-size: 15px; font-weight: 500; color: var(--grey-label); height: 19px; line-height: 19px; margin-top: 5px; flex-shrink: 0; }
+.cell__pop { font-size: 15px; font-weight: 500; color: var(--grey-label); height: 19px; line-height: 19px; flex-shrink: 0; }
 
-.cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; margin-top: 2px; flex-shrink: 0; }
+.cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; flex-shrink: 0; }
 .cell__temp--hot { color: var(--red); }
 .cell__temp--am { color: var(--grey-muted); }
 .cell__temp--pm { color: var(--near-black); }
@@ -107,7 +115,6 @@ body {
 .badge {
   font-size: 15px;
   font-weight: 500;
-  margin-top: 5px;
   height: 19px;
   line-height: 19px;
   flex-shrink: 0;
@@ -117,13 +124,14 @@ body {
 .badge--neutral { color: var(--grey-label); }
 .badge--spacer { visibility: hidden; }
 
-.cell__uv { font-size: 15px; font-weight: 500; height: 18px; line-height: 18px; margin-top: 3px; flex-shrink: 0; }
+.cell__uv { font-size: 15px; font-weight: 500; height: 18px; line-height: 18px; flex-shrink: 0; }
 .cell__uv--grey { color: var(--grey-label); }
 .cell__uv--orange { color: #d9720a; }
 .cell__uv--red { color: var(--red); }
 .cell__uv--bold { font-weight: 700; }
 
-.cell__wind { margin-top: auto; width: 30px; height: 30px; flex-shrink: 0; }
+.cell__wind { width: 30px; height: 30px; flex-shrink: 0; }
+.cell__wind--spacer { visibility: hidden; }
 
 /* Hail pill: low mirrors the link buttons (white, grey text); medium/high
    turn solid orange/red so an active warning reads clearly. */

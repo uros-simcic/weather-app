@@ -21,10 +21,15 @@ jobs:
       - run: python3 pipeline/fetch_obs.py --latest
       - run: python3 pipeline/fetch_hail.py
 
+      # Rebase-and-retry push: avoids losing the race against forecast.yml's
+      # long-running job (see comment there).
       - name: Commit changed files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/log_obs.csv docs/now.json
           git diff --cached --quiet || git commit -m "Update now.json"
-          git push
+          for i in 1 2 3; do
+            git push && break
+            git pull --rebase
+          done

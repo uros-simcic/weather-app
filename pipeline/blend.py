@@ -29,6 +29,13 @@ BLOCK_LABELS = ["23-02", "02-05", "05-08", "08-11", "11-14", "14-17", "17-20", "
 # storm > snow > rain > fog > cloud > partly > sun (spec §7.2)
 ICON_SEVERITY = ["sun", "partly", "cloud", "fog", "rain", "snow", "storm"]
 
+# The LightGBM blend was trained with most members present. Beyond ~5 days only
+# the two global models (ECMWF, GFS) reach that far; with the other four missing
+# the tree collapses to a ~climatology mean far below the two real members
+# (verified: models said 34-40°C at 6-7d, blend output 28-29). Below this many
+# members, ship the equal-weight mean instead — it stays anchored to real data.
+MIN_MEMBERS_FOR_ML = 3
+
 
 def worst_icon(icons):
     icons = [i for i in icons if i]
@@ -126,7 +133,9 @@ def blend_hourly(data, now_dt, models, decisions):
             if not member_values:
                 continue
 
-            if var in TRAIN_VARS and var in models and ships_ml_blend(var, bucket, decisions):
+            if (var in TRAIN_VARS and var in models
+                    and len(member_values) >= MIN_MEMBERS_FOR_ML
+                    and ships_ml_blend(var, bucket, decisions)):
                 bundle = models[var]
                 row = {m: member_values.get(m) for m in OPEN_METEO_MODELS}
                 row.update({f"{m}_avail": 1 if m in member_values else 0 for m in OPEN_METEO_MODELS})

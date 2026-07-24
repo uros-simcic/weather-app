@@ -142,9 +142,12 @@ def blend_hourly(data, now_dt, models, decisions):
     return out
 
 
-def build_blocks(blended, today, now_dt):
+def build_blocks(blended, target_date):
+    """Eight 3-hour blocks for target_date, starting the previous day at 23:00
+    (the 23-02 block spans midnight, per spec §7.2). Built for every day so the
+    frontend can show any day's hourly breakdown on tap."""
     blocks = []
-    start = datetime.combine(today - timedelta(days=1), datetime.min.time()).replace(hour=23)
+    start = datetime.combine(target_date - timedelta(days=1), datetime.min.time()).replace(hour=23)
     for label in BLOCK_LABELS:
         end = start + timedelta(hours=3)
         hours_in_block = []
@@ -220,6 +223,7 @@ def build_days(data, blended):
         }
         if pops_today:
             day["pop"] = round(max(pops_today) / 5) * 5
+        day["blocks"] = build_blocks(blended, datetime.fromisoformat(d).date())
         days.append(day)
     return days
 
@@ -246,12 +250,15 @@ def main():
     decisions = load_decisions()
     blended = blend_hourly(data, now_dt, models, decisions)
 
+    days = build_days(data, blended)
     forecast = {
         "generated_at": datetime.now(tz).isoformat(),
         "coords": {"lat": LAT, "lon": LON, "elev": ELEVATION},
         "sun": sun_times(data),
-        "blocks": build_blocks(blended, today, now_dt),
-        "days": build_days(data, blended),
+        # Top-level blocks mirror today's, kept for the now.json icon/UV fallback
+        # and app.js's forecast-block fallback; per-day blocks live in days[].
+        "blocks": days[0]["blocks"] if days else [],
+        "days": days,
         "stale_after_hours": 24,
     }
 

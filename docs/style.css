@@ -88,10 +88,12 @@ body {
   align-items: center;
   text-align: center;
 }
-.cell--zdaj {
+/* Shared highlight: the zdaj cell and the tapped week day both wear it. */
+.cell--selected {
   background: rgba(255, 255, 255, .65);
   border: 2px solid var(--blue-rain);
 }
+.cell--tappable { cursor: pointer; }
 
 .cell__label { font-size: 16px; font-weight: 400; color: var(--grey-label); }
 

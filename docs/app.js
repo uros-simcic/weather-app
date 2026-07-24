@@ -5,6 +5,10 @@ const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 
+// null = default "today" view (zdaj + today's remaining blocks). Otherwise a
+// day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
+let selectedDate = null;
+
 function iconRef(name, drops) {
   let resolved = ICON_WHITELIST.has(name) ? name : 'cloud';
   if (resolved === 'rain') resolved = drops >= 2 ? 'rain-heavy' : 'rain-light';
@@ -128,9 +132,18 @@ function makeWindArrow(dir, speed) {
   return svg;
 }
 
-function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj }) {
+function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick }) {
   const cell = document.createElement('div');
-  cell.className = 'cell card' + (isZdaj ? ' cell--zdaj' : '');
+  cell.className = 'cell card' + (isZdaj || highlight ? ' cell--selected' : '') + (onClick ? ' cell--tappable' : '');
+
+  if (onClick) {
+    cell.tabIndex = 0;
+    cell.setAttribute('role', 'button');
+    cell.addEventListener('click', onClick);
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+    });
+  }
 
   const labelEl = document.createElement('div');
   labelEl.className = 'cell__label';
@@ -178,10 +191,38 @@ function renderHeader(forecast) {
   setInterval(tick, 1000);
 }
 
-function renderTodayRow(forecast, now) {
+function blockCell(block) {
+  return buildCell({
+    label: block.label,
+    icon: block.icon,
+    drops: block.drops,
+    pop: block.pop,
+    temps: [{ value: block.t, cls: block.t >= 30 ? 'cell__temp--hot' : '' }],
+    rh: block.rh,
+    uv: block.uv,
+    wind_kmh: block.wind_kmh,
+    wind_dir: block.wind_dir,
+  });
+}
+
+function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
   row.innerHTML = '';
+  const days = forecast.days || [];
+  const todayDate = days.length ? days[0].date : null;
 
+  // A future day is selected: show all of its blocks, no zdaj, no expiry filter.
+  if (selectedDate && selectedDate !== todayDate) {
+    const day = days.find((d) => d.date === selectedDate);
+    if (day && day.blocks) {
+      for (const block of day.blocks) row.appendChild(blockCell(block));
+      row.scrollLeft = 0;
+      return;
+    }
+    selectedDate = null; // selection went stale (e.g. rolled past midnight)
+  }
+
+  // Default: zdaj + today's not-yet-expired blocks.
   row.appendChild(buildCell({
     label: 'zdaj',
     icon: now.icon,
@@ -196,26 +237,20 @@ function renderTodayRow(forecast, now) {
   }));
 
   const nowTs = Date.now();
-  for (const block of forecast.blocks) {
+  const todayBlocks = (days.length && days[0].blocks) || forecast.blocks || [];
+  for (const block of todayBlocks) {
     if (new Date(block.end).getTime() <= nowTs) continue;
-    row.appendChild(buildCell({
-      label: block.label,
-      icon: block.icon,
-      drops: block.drops,
-      pop: block.pop,
-      temps: [{ value: block.t, cls: block.t >= 30 ? 'cell__temp--hot' : '' }],
-      rh: block.rh,
-      uv: block.uv,
-      wind_kmh: block.wind_kmh,
-      wind_dir: block.wind_dir,
-    }));
+    row.appendChild(blockCell(block));
   }
+  row.scrollLeft = 0;
 }
 
-function renderWeekRow(forecast) {
+function renderWeekRow(forecast, now) {
   const row = document.getElementById('week-row');
   row.innerHTML = '';
+  const todayDate = forecast.days.length ? forecast.days[0].date : null;
   for (const day of forecast.days) {
+    const isSelected = selectedDate === day.date && selectedDate !== todayDate;
     row.appendChild(buildCell({
       label: day.name,
       icon: day.icon,
@@ -229,6 +264,13 @@ function renderWeekRow(forecast) {
       uv: day.uv_max,
       wind_kmh: day.wind_kmh,
       wind_dir: day.wind_dir,
+      highlight: isSelected,
+      onClick: () => {
+        // Tap today, or re-tap the selected day, to return to the zdaj view.
+        selectedDate = (day.date === todayDate || day.date === selectedDate) ? null : day.date;
+        renderTopRow(forecast, now);
+        renderWeekRow(forecast, now);
+      },
     }));
   }
 }
@@ -332,8 +374,8 @@ async function loadAndRender() {
 
   renderHeader(forecast);
   renderStaleBanner(forecast);
-  renderTodayRow(forecast, now);
-  renderWeekRow(forecast);
+  renderTopRow(forecast, now);
+  renderWeekRow(forecast, now);
   renderHailPill(now);
 }
 

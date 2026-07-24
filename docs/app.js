@@ -215,8 +215,16 @@ function renderTopRow(forecast, now) {
   if (selectedDate && selectedDate !== todayDate) {
     const day = days.find((d) => d.date === selectedDate);
     if (day && day.blocks) {
-      for (const block of day.blocks) row.appendChild(blockCell(block));
-      row.scrollLeft = 0;
+      let firstDaytime = null;
+      for (const block of day.blocks) {
+        const cell = blockCell(block);
+        // Overnight blocks are legitimately sparse (uv 0, humidity hidden < 22°C);
+        // start the view on the first daytime block so a tapped day doesn't open
+        // on empty-looking night cells.
+        if (firstDaytime === null && block.uv > 0) firstDaytime = cell;
+        row.appendChild(cell);
+      }
+      row.scrollLeft = firstDaytime ? firstDaytime.offsetLeft : 0;
       return;
     }
     selectedDate = null; // selection went stale (e.g. rolled past midnight)
@@ -248,9 +256,9 @@ function renderTopRow(forecast, now) {
 function renderWeekRow(forecast, now) {
   const row = document.getElementById('week-row');
   row.innerHTML = '';
-  const todayDate = forecast.days.length ? forecast.days[0].date : null;
-  for (const day of forecast.days) {
-    const isSelected = selectedDate === day.date && selectedDate !== todayDate;
+  // Skip today (days[0]) — it already fills the top row; showing it here too
+  // is redundant. The week row is the 7 days ahead.
+  for (const day of forecast.days.slice(1)) {
     row.appendChild(buildCell({
       label: day.name,
       icon: day.icon,
@@ -264,10 +272,10 @@ function renderWeekRow(forecast, now) {
       uv: day.uv_max,
       wind_kmh: day.wind_kmh,
       wind_dir: day.wind_dir,
-      highlight: isSelected,
+      highlight: selectedDate === day.date,
       onClick: () => {
-        // Tap today, or re-tap the selected day, to return to the zdaj view.
-        selectedDate = (day.date === todayDate || day.date === selectedDate) ? null : day.date;
+        // Re-tap the selected day to return to the zdaj (today) view.
+        selectedDate = selectedDate === day.date ? null : day.date;
         renderTopRow(forecast, now);
         renderWeekRow(forecast, now);
       },

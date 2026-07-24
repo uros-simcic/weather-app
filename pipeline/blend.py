@@ -193,7 +193,9 @@ def build_days(data, blended):
     dates = daily.get("time", [])
     days = []
     day_names = ["PON", "TOR", "SRE", "ČET", "PET", "SOB", "NED"]
-    for i, d in enumerate(dates[:7]):
+    # 8 days = today + 7 ahead: the frontend puts today in the top row and shows
+    # the 7 following days in the week row (today would be redundant there).
+    for i, d in enumerate(dates[:8]):
         weekday = datetime.fromisoformat(d).weekday()
         t_am_key = f"{d}T10:00"
         t_pm_key = f"{d}T15:00"

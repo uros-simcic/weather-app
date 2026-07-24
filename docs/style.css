@@ -46,11 +46,17 @@ body {
 /* Header: three items (place / date-time / sun-group) spread across the
    full width so the date-time block sits between Brda and sunrise rather
    than hugging either side. */
+/* Two flexible spacers absorb the header's free space. Equal by default, which
+   reproduces the previous `justify-content: space-between` exactly; the desktop
+   rule below re-splits them 2:1 to shift the date-time block right. */
+.header__spacer { flex: 1 1 0; }
+
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 4px 4px 14px 14px;
+  /* 4px bottom + the row's own 4px top padding = the same 8px gap the two
+     button rows have, so the vertical rhythm is uniform down the page. */
+  padding: 4px 4px 4px 14px;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
@@ -71,8 +77,10 @@ body {
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+  /* 4px padding keeps the selected cell's 2px border from being clipped;
+     no bottom margin, so cell-to-cell spacing between rows stays at 8px. */
   padding: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 .row::-webkit-scrollbar { display: none; }
 
@@ -145,6 +153,8 @@ body {
   text-align: center;
   text-decoration: none;
   padding: 13px 12px;
+  /* the rows no longer carry a bottom margin, so open the gap from this side */
+  margin-top: 6px;
   margin-bottom: 10px;
 }
 .hail-pill--low { color: var(--grey-label); }
@@ -212,14 +222,39 @@ body {
    stay a comfortable centered width so images don't upscale into a blur. */
 @media (min-width: 760px) {
   .page { max-width: 1000px; }
+
+  /* One 800px column for everything. 800px is the ceiling worth using: the
+     satellite video is natively 800x600 (so it renders 1:1) and the radar GIF
+     821x660 — going wider would upscale both into blur. It also lands within
+     ~10px of the day-row width, so images and cells share an edge. */
   .header,
   .stale-banner,
   .hail-pill,
   .links,
   .panel,
   .footer {
-    max-width: 600px;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* Rows share the same 800px column, so cells start on the panels' left edge
+     and the full week row spans it — symmetric around the radar below without
+     centring the cells themselves. A short row (zdaj + a couple of blocks late
+     in the day) then stays left-aligned instead of floating mid-page, and an
+     overflowing row still scrolls inside the column rather than being clipped. */
+  .row {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Slightly under the 16px hail pill, with Brda a touch larger than the rest. */
+  .header { font-size: 14px; }
+  .header__place { font-size: 15px; }
+
+  /* 5:1 leaves the date-time a sixth of the free space from the sunrise group,
+     i.e. half again as far right as the earlier 2:1 split. Desktop-only — on a
+     phone the line is nearly full and any shift would just crowd it. */
+  .header__spacer--wide { flex-grow: 5; }
 }

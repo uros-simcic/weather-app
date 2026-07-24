@@ -201,20 +201,26 @@ def build_days(data, blended):
         t_pm_key = f"{d}T15:00"
         rh_pm_key = t_pm_key
 
-        # Daily fields come back per-model-suffixed (like hourly) when multiple
-        # models are requested — summing our already-blended hourly series is
-        # simpler and more consistent than re-averaging six suffixed daily keys.
-        precip_sum = sum(v for t, v in blended["precipitation"].items() if t.startswith(d))
-        codes_today = [v for t, v in blended["weather_code"].items() if t.startswith(d)]
+        # Icon / rain% / precip summarise the DAYTIME (06:00-20:59) only. Using
+        # all 24h let a pre-dawn shower that's gone by sunrise flip the whole day
+        # to "rain" at a high pop, contradicting an otherwise-sunny hourly view.
+        # Wind stays whole-day (its max is a safety figure, not a "how's the day").
+        def daytime(series):
+            return [v for t, v in series.items()
+                    if t.startswith(d) and 6 <= int(t[11:13]) < 21]
+
+        precip_sum = sum(daytime(blended["precipitation"]))
+        codes_day = daytime(blended["weather_code"])
+        pops_day = daytime(blended["precipitation_probability"])
+
         winds_today = [(blended["wind_speed_10m"].get(t), blended["wind_direction_10m"].get(t))
                         for t in blended["wind_speed_10m"] if t.startswith(d)]
         winds_today = [(s, dd) for s, dd in winds_today if s is not None]
         wind_kmh, wind_dir = (max(winds_today, key=lambda x: x[0]) if winds_today else (0, 0))
-        pops_today = [v for t, v in blended["precipitation_probability"].items() if t.startswith(d)]
 
         day = {
             "date": d, "name": day_names[weekday],
-            "icon": worst_icon([wmo_to_icon(c) for c in codes_today]),
+            "icon": worst_icon([wmo_to_icon(c) for c in codes_day]),
             "t_am": round(blended["temperature_2m"][t_am_key]) if t_am_key in blended["temperature_2m"] else None,
             "t_pm": round(blended["temperature_2m"][t_pm_key]) if t_pm_key in blended["temperature_2m"] else None,
             "rh_pm": round(blended["relative_humidity_2m"][rh_pm_key]) if rh_pm_key in blended["relative_humidity_2m"] else None,
@@ -223,8 +229,8 @@ def build_days(data, blended):
             "precip_mm": round(precip_sum, 1),
             "drops": daily_drops(precip_sum),
         }
-        if pops_today:
-            day["pop"] = round(max(pops_today) / 5) * 5
+        if pops_day:
+            day["pop"] = round(max(pops_day) / 5) * 5
         day["blocks"] = build_blocks(blended, datetime.fromisoformat(d).date())
         days.append(day)
     return days

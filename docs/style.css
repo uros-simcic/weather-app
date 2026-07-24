@@ -81,7 +81,7 @@ body {
    than today cells at 92px — the rows only match when the basis fits both. */
 .cell {
   flex: 0 0 106px;
-  height: 280px;
+  height: 248px;
   padding: 12px 4px 12px;
   display: flex;
   flex-direction: column;

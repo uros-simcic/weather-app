@@ -72,9 +72,18 @@ def fetch_open_meteo(now_dt):
         "hourly": ",".join(OPEN_METEO_HOURLY_VARS),
         "daily": ",".join(OPEN_METEO_DAILY_VARS),
     }
-    resp = requests.get(OPEN_METEO_URL, params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+    # Retry on transient timeouts: this single call is the whole forecast, so
+    # one blip must not fail the daily run and leave forecast.json stale.
+    last_error = None
+    for timeout in (30, 60, 90):
+        try:
+            resp = requests.get(OPEN_METEO_URL, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as e:
+            last_error = e
+            print(f"open-meteo: attempt failed ({e})", file=sys.stderr)
+    raise last_error
 
 
 def load_models():

@@ -211,20 +211,16 @@ function renderTopRow(forecast, now) {
   const days = forecast.days || [];
   const todayDate = days.length ? days[0].date : null;
 
-  // A future day is selected: show all of its blocks, no zdaj, no expiry filter.
+  // A future day is selected: show its blocks from 08-11 onward, no zdaj. The
+  // pre-dawn blocks (23-02, 02-05, 05-08) are dropped — they're legitimately
+  // sparse (uv 0, humidity hidden < 22°C) and read as an empty start.
   if (selectedDate && selectedDate !== todayDate) {
     const day = days.find((d) => d.date === selectedDate);
     if (day && day.blocks) {
-      let firstDaytime = null;
-      for (const block of day.blocks) {
-        const cell = blockCell(block);
-        // Overnight blocks are legitimately sparse (uv 0, humidity hidden < 22°C);
-        // start the view on the first daytime block so a tapped day doesn't open
-        // on empty-looking night cells.
-        if (firstDaytime === null && block.uv > 0) firstDaytime = cell;
-        row.appendChild(cell);
-      }
-      row.scrollLeft = firstDaytime ? firstDaytime.offsetLeft : 0;
+      const startIdx = day.blocks.findIndex((b) => b.label === '08-11');
+      const blocks = startIdx >= 0 ? day.blocks.slice(startIdx) : day.blocks;
+      for (const block of blocks) row.appendChild(blockCell(block));
+      row.scrollLeft = 0;
       return;
     }
     selectedDate = null; // selection went stale (e.g. rolled past midnight)

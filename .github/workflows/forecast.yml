@@ -34,6 +34,11 @@ jobs:
       - run: python3 pipeline/train.py
       - run: python3 pipeline/blend.py
 
+      # Score yesterday's published forecast against real station readings.
+      # Never fail the run over reporting — the forecast itself already shipped.
+      - run: python3 pipeline/verify.py
+        continue-on-error: true
+
       # Runs even if an earlier step failed (e.g. a transient upstream API
       # timeout) — commits whatever succeeded rather than losing it.
       # Rebase-and-retry: this job runs for minutes while now.yml pushes every

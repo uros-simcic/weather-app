@@ -65,6 +65,37 @@ def equal_weight_mean(row):
     return sum(values) / len(values) if values else float("nan")
 
 
+def member_maes(train_df):
+    """Per-member MAE on the TRAIN split only — using holdout MAEs to build
+    holdout weights would leak the answer into the evaluation."""
+    out = {}
+    for m in OPEN_METEO_MODELS:
+        sub = train_df[train_df[m].notna()]
+        if len(sub):
+            out[m] = float(mae(sub[m], sub["truth"]))
+    return out
+
+
+def weighted_mean(row, maes, power):
+    """Skill-weighted ensemble: weight ∝ (1/MAE)^power. power=0 is the plain
+    mean; higher powers concentrate weight on the historically better members."""
+    num = den = 0.0
+    for m in OPEN_METEO_MODELS:
+        v = row[m]
+        if pd.notna(v) and maes.get(m):
+            w = (1.0 / maes[m]) ** power
+            num += w * v
+            den += w
+    return num / den if den else float("nan")
+
+
+# Candidate blend methods, evaluated per variable x lead bucket. The winner is
+# whatever actually has the lowest holdout MAE — measured, never assumed:
+# weighting helps temperature/RH/wind a lot but HURTS precipitation, so no
+# single scheme can be applied blanket across variables.
+WEIGHT_POWERS = (1, 2, 3)
+
+
 def run_backtest(wide):
     cutoff = pd.Timestamp(date.today() - timedelta(weeks=HOLDOUT_WEEKS))
     wide["time_dt"] = pd.to_datetime(wide["time"])
@@ -81,23 +112,36 @@ def run_backtest(wide):
         if var_train.empty or var_hold.empty:
             continue
 
+        maes = member_maes(var_train)
         model = fit_blend_model(var_train[cols].astype(float), var_train["truth"])
         var_hold["blend_pred"] = model.predict(var_hold[cols].astype(float))
         var_hold["mean_pred"] = var_hold.apply(equal_weight_mean, axis=1)
+        for p in WEIGHT_POWERS:
+            var_hold[f"w{p}_pred"] = var_hold.apply(lambda r, p=p: weighted_mean(r, maes, p), axis=1)
 
         for bucket, bucket_df in var_hold.groupby("lead_bucket"):
             row = {"variable": var, "lead_bucket": bucket, "n": len(bucket_df)}
             for member in OPEN_METEO_MODELS:
                 sub = bucket_df[bucket_df[member].notna()]
                 row[f"mae_{member}"] = round(mae(sub[member], sub["truth"]), 3) if len(sub) else None
-            mean_mae = mae(bucket_df["mean_pred"], bucket_df["truth"])
-            blend_mae = mae(bucket_df["blend_pred"], bucket_df["truth"])
-            row["mae_equal_weight_mean"] = round(mean_mae, 3)
-            row["mae_lightgbm_blend"] = round(blend_mae, 3)
-            ship_ml = bool(blend_mae < mean_mae)
-            row["ships"] = "lightgbm_blend" if ship_ml else "equal_weight_mean"
+
+            candidates = {
+                "equal_weight_mean": mae(bucket_df["mean_pred"], bucket_df["truth"]),
+                "lightgbm_blend": mae(bucket_df["blend_pred"], bucket_df["truth"]),
+            }
+            for p in WEIGHT_POWERS:
+                candidates[f"weighted_mean_p{p}"] = mae(bucket_df[f"w{p}_pred"], bucket_df["truth"])
+
+            for name, value in candidates.items():
+                row[f"mae_{name}"] = round(value, 3)
+            winner = min(candidates, key=candidates.get)
+            row["ships"] = winner
             results.append(row)
-            decisions[f"{var}|{bucket}"] = row["ships"]
+            decisions[f"{var}|{bucket}"] = winner
+
+        # Weights travel with the decisions so blend.py can reproduce the exact
+        # weighted mean the backtest picked, without recomputing any history.
+        decisions[f"{var}|member_mae"] = {k: round(v, 4) for k, v in maes.items()}
 
     return results, decisions
 
@@ -112,6 +156,13 @@ def write_report(results):
         "the 0-24h/1-3d/3-5d/5-10d buckets this cell will eventually split into) "
         "only exists once fetch_models.py's live daily logs accumulate — "
         "train.py combines both sources going forward.", "",
+        "**Truth-source caveat:** ground truth here is Open-Meteo's archive "
+        "(ERA5), which is ECMWF's own reanalysis — so ECMWF-family members are "
+        "measured partly against their own output and will look better than they "
+        "are. Treat any ECMWF-favouring result as an upper bound, and prefer "
+        "verification.csv (real Bilje / Nova Gorica station readings) as it "
+        "accumulates. This is why the shipped choice is a weighted blend rather "
+        "than ECMWF alone, even where ECMWF alone scores best here.", "",
     ]
     for var in TRAIN_VARS:
         var_rows = [r for r in results if r["variable"] == var]
@@ -120,7 +171,8 @@ def write_report(results):
         lines.append(f"## {var}")
         lines.append("")
         header = ["lead_bucket", "n"] + [f"mae_{m}" for m in OPEN_METEO_MODELS] + \
-            ["mae_equal_weight_mean", "mae_lightgbm_blend", "ships"]
+            ["mae_equal_weight_mean"] + [f"mae_weighted_mean_p{p}" for p in WEIGHT_POWERS] + \
+            ["mae_lightgbm_blend", "ships"]
         lines.append("| " + " | ".join(header) + " |")
         lines.append("|" + "---|" * len(header))
         for r in var_rows:

@@ -1,6 +1,0 @@
-{
-  "temperature_2m|unknown-horizon": "lightgbm_blend",
-  "relative_humidity_2m|unknown-horizon": "lightgbm_blend",
-  "wind_speed_10m|unknown-horizon": "lightgbm_blend",
-  "precipitation|unknown-horizon": "lightgbm_blend"
-}

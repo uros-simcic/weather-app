@@ -105,15 +105,31 @@ def load_decisions():
         return json.load(f)
 
 
-def ships_ml_blend(var, bucket, decisions):
-    """Exact bucket match if one exists; otherwise fall back to the
-    variable's only backtested signal ("unknown-horizon" — historical
-    archives can't carry real lead-time, see features.py) rather than
-    silently never using a model that's already proven to beat the mean."""
+def chosen_method(var, bucket, decisions):
+    """Which blend method the backtest picked for this variable x lead bucket.
+    Exact bucket match if one exists; otherwise the variable's only backtested
+    signal ("unknown-horizon" — historical archives can't carry real lead-time,
+    see features.py). Defaults to the plain mean when nothing is recorded."""
     exact = decisions.get(f"{var}|{bucket}")
-    if exact is not None:
-        return exact == "lightgbm_blend"
-    return decisions.get(f"{var}|unknown-horizon") == "lightgbm_blend"
+    if isinstance(exact, str):
+        return exact
+    fallback = decisions.get(f"{var}|unknown-horizon")
+    return fallback if isinstance(fallback, str) else "equal_weight_mean"
+
+
+def weighted_mean(member_values, maes, power):
+    """Skill-weighted ensemble mean: weight ∝ (1/MAE)^power, using the same
+    per-member MAEs the backtest chose this method with."""
+    num = den = 0.0
+    for m, v in member_values.items():
+        skill = maes.get(m)
+        if skill:
+            w = (1.0 / skill) ** power
+            num += w * v
+            den += w
+    if not den:  # no member has a recorded skill score — fall back to plain mean
+        return sum(member_values.values()) / len(member_values)
+    return num / den
 
 
 def blend_hourly(data, now_dt, models, decisions):
@@ -142,9 +158,12 @@ def blend_hourly(data, now_dt, models, decisions):
             if not member_values:
                 continue
 
-            if (var in TRAIN_VARS and var in models
-                    and len(member_values) >= MIN_MEMBERS_FOR_ML
-                    and ships_ml_blend(var, bucket, decisions)):
+            method = chosen_method(var, bucket, decisions) if var in TRAIN_VARS else "equal_weight_mean"
+            maes = decisions.get(f"{var}|member_mae") or {}
+
+            use_ml = (method == "lightgbm_blend" and var in models
+                      and len(member_values) >= MIN_MEMBERS_FOR_ML)
+            if use_ml:
                 bundle = models[var]
                 row = {m: member_values.get(m) for m in OPEN_METEO_MODELS}
                 row.update({f"{m}_avail": 1 if m in member_values else 0 for m in OPEN_METEO_MODELS})
@@ -153,6 +172,14 @@ def blend_hourly(data, now_dt, models, decisions):
                 import pandas as pd
                 X = pd.DataFrame([row])[bundle["feature_columns"]].astype(float)
                 value = float(bundle["model"].predict(X)[0])
+            elif method.startswith("weighted_mean_p") and maes:
+                value = weighted_mean(member_values, maes, int(method[-1]))
+            elif method == "lightgbm_blend" and maes:
+                # ML was chosen but can't run here (too few members, or model
+                # file missing) — prefer the skill-weighted mean over the plain
+                # one; it beat equal weight on holdout for every variable that
+                # picked ML in the first place.
+                value = weighted_mean(member_values, maes, 2)
             else:
                 value = sum(member_values.values()) / len(member_values)
 
@@ -215,9 +242,7 @@ def build_days(data, blended):
     # the 7 following days in the week row (today would be redundant there).
     for i, d in enumerate(dates[:8]):
         weekday = datetime.fromisoformat(d).weekday()
-        t_am_key = f"{d}T10:00"
-        t_pm_key = f"{d}T15:00"
-        rh_pm_key = t_pm_key
+        rh_pm_key = f"{d}T15:00"
 
         # Icon / rain% / precip summarise the DAYTIME (06:00-20:59) only. Using
         # all 24h let a pre-dawn shower that's gone by sunrise flip the whole day
@@ -236,11 +261,17 @@ def build_days(data, blended):
         winds_today = [(s, dd) for s, dd in winds_today if s is not None]
         wind_kmh, wind_dir = (max(winds_today, key=lambda x: x[0]) if winds_today else (0, 0))
 
+        # Daily min/max over the whole calendar day, not fixed 10:00/15:00
+        # readings: every reference forecast (ARSO, meteo.it) publishes min/max,
+        # and a 10:00 value read ~10°C warmer than ARSO's overnight minimum,
+        # making the two impossible to compare.
+        temps_all = [v for t, v in blended["temperature_2m"].items() if t.startswith(d)]
+
         day = {
             "date": d, "name": day_names[weekday],
             "icon": worst_icon([wmo_to_icon(c) for c in codes_day]),
-            "t_am": round(blended["temperature_2m"][t_am_key]) if t_am_key in blended["temperature_2m"] else None,
-            "t_pm": round(blended["temperature_2m"][t_pm_key]) if t_pm_key in blended["temperature_2m"] else None,
+            "t_am": round(min(temps_all)) if temps_all else None,
+            "t_pm": round(max(temps_all)) if temps_all else None,
             "rh_pm": round(blended["relative_humidity_2m"][rh_pm_key]) if rh_pm_key in blended["relative_humidity_2m"] else None,
             "uv_max": round(max((v for t, v in blended["uv_index"].items() if t.startswith(d)), default=0)),
             "wind_kmh": round(wind_kmh), "wind_dir": round(wind_dir),
@@ -252,6 +283,38 @@ def build_days(data, blended):
         day["blocks"] = build_blocks(blended, datetime.fromisoformat(d).date())
         days.append(day)
     return days
+
+
+def log_published(blended, now_dt):
+    """Append our own published hourly values to data/log_published.csv.
+
+    We logged every model member's input but never our own output, so there was
+    no way to score ourselves after the fact. verify.py reads this back against
+    real station readings."""
+    import csv
+    path = os.path.join(DATA_DIR, "log_published.csv")
+    fields = ["run_time", "valid_time", "variable", "value"]
+    run_time = now_dt.isoformat()
+
+    rows = []
+    for var in ("temperature_2m", "relative_humidity_2m", "wind_speed_10m"):
+        for t, value in blended.get(var, {}).items():
+            # Only the next 48h: beyond that the row is superseded by a later
+            # run before it can ever be verified.
+            valid = datetime.fromisoformat(t)
+            if 0 <= (valid - now_dt).total_seconds() <= 48 * 3600:
+                rows.append({"run_time": run_time, "valid_time": t,
+                             "variable": var, "value": round(value, 2)})
+    if not rows:
+        return
+    os.makedirs(DATA_DIR, exist_ok=True)
+    is_new = not os.path.exists(path)
+    with open(path, "a", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields)
+        if is_new:
+            w.writeheader()
+        w.writerows(rows)
+    print(f"blend: logged {len(rows)} published values for verification")
 
 
 def sun_times(data):
@@ -275,6 +338,8 @@ def main():
     models = load_models()
     decisions = load_decisions()
     blended = blend_hourly(data, now_dt, models, decisions)
+
+    log_published(blended, now_dt)
 
     days = build_days(data, blended)
     forecast = {

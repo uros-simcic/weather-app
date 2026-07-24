@@ -191,21 +191,15 @@ function renderHeader(forecast) {
   setInterval(tick, 1000);
 }
 
-// Scroll a snap row so targetCell sits at the left edge. The distance between
-// two cells (targetCell.offsetLeft - firstCell.offsetLeft) is independent of
-// layout/offset-parent, unlike a bare offsetLeft. iOS Safari can revert a
-// programmatic scroll on a scroll-snap container, so re-assert it in the next
-// frame with snapping momentarily off.
+// Scroll the row so targetCell sits at the left edge. The distance between two
+// cells (targetCell.offsetLeft - firstCell.offsetLeft) is independent of
+// layout/offset-parent, unlike a bare offsetLeft. Re-assert once after layout
+// settles — iOS Safari otherwise ignores a scroll set right after DOM insertion.
 function scrollRowTo(row, firstCell, targetCell) {
   if (!targetCell || targetCell === firstCell) return;
-  const x = targetCell.offsetLeft - firstCell.offsetLeft;
-  row.scrollLeft = x;
-  requestAnimationFrame(() => {
-    const prevSnap = row.style.scrollSnapType;
-    row.style.scrollSnapType = 'none';
-    row.scrollLeft = x;
-    requestAnimationFrame(() => { row.style.scrollSnapType = prevSnap; });
-  });
+  const setX = () => { row.scrollLeft = targetCell.offsetLeft - firstCell.offsetLeft; };
+  setX();
+  requestAnimationFrame(setX);
 }
 
 function blockCell(block) {

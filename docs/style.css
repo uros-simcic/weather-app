@@ -63,11 +63,13 @@ body {
 .header__sun svg { width: 14px; height: 14px; }
 
 /* Rows */
+/* No scroll-snap: on iOS Safari it reverts a programmatic scrollLeft, which
+   made "open a tapped day at 08-11" silently fail on the phone. Free scroll
+   is fine for these short horizontal lists. */
 .row {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
   padding: 4px;
   margin-bottom: 10px;
@@ -78,7 +80,6 @@ body {
    items can't shrink below min-content, so week cells silently grew wider
    than today cells at 92px — the rows only match when the basis fits both. */
 .cell {
-  scroll-snap-align: start;
   flex: 0 0 106px;
   height: 280px;
   padding: 12px 4px 12px;

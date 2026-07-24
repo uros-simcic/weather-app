@@ -211,16 +211,19 @@ function renderTopRow(forecast, now) {
   const days = forecast.days || [];
   const todayDate = days.length ? days[0].date : null;
 
-  // A future day is selected: show its blocks from 08-11 onward, no zdaj. The
-  // pre-dawn blocks (23-02, 02-05, 05-08) are dropped — they're legitimately
-  // sparse (uv 0, humidity hidden < 22°C) and read as an empty start.
+  // A future day is selected: show all its blocks, no zdaj. Open scrolled to
+  // the 08-11 block so the morning leads (the pre-dawn blocks are legitimately
+  // sparse — uv 0, humidity hidden < 22°C), but scrolling left still reveals them.
   if (selectedDate && selectedDate !== todayDate) {
     const day = days.find((d) => d.date === selectedDate);
     if (day && day.blocks) {
-      const startIdx = day.blocks.findIndex((b) => b.label === '08-11');
-      const blocks = startIdx >= 0 ? day.blocks.slice(startIdx) : day.blocks;
-      for (const block of blocks) row.appendChild(blockCell(block));
-      row.scrollLeft = 0;
+      let startCell = null;
+      for (const block of day.blocks) {
+        const cell = blockCell(block);
+        if (block.label === '08-11') startCell = cell;
+        row.appendChild(cell);
+      }
+      row.scrollLeft = startCell ? startCell.offsetLeft : 0;
       return;
     }
     selectedDate = null; // selection went stale (e.g. rolled past midnight)

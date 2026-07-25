@@ -32,8 +32,11 @@ VERIFY_CSV = os.path.join(DATA_DIR, "verification.csv")
 VERIFY_REPORT = os.path.join(DATA_DIR, "verification_report.md")
 
 REPORT_DAYS = 30
-# Station variable name -> the key we publish it under in forecast.json blocks.
-VAR_MAP = {"temperature_2m": "t", "relative_humidity_2m": "rh", "wind_speed_10m": "wind_kmh"}
+# Both log_published.csv and log_obs.csv use the pipeline's own variable names,
+# so no translation is needed. (An earlier VAR_MAP translated to forecast.json's
+# short keys — 't', 'rh' — which never matched the log, so every lookup missed
+# and verification silently scored zero rows.)
+SCORED_VARS = ("temperature_2m", "relative_humidity_2m", "wind_speed_10m")
 
 
 def load_observations():
@@ -78,8 +81,8 @@ def load_published():
 def score_day(day, published, observed):
     """One row per variable for a single day: MAE + how well the daily swing matched."""
     rows = []
-    for var, pub_key in VAR_MAP.items():
-        pub = published.get(pub_key, {})
+    for var in SCORED_VARS:
+        pub = published.get(var, {})
         obs = observed.get(var, {})
         shared = sorted(set(pub) & set(obs))
         if len(shared) < 4:  # too little overlap to say anything meaningful

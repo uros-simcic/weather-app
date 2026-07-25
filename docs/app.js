@@ -66,7 +66,9 @@ function makeTemps(...parts) {
 
 function makeHumidityBadge(t, rh) {
   const el = document.createElement('div');
-  if (t == null || t < 22) {
+  // rh is null whenever every station is stale (fetch_obs writes null rather
+  // than guessing); without this check the badge rendered the string "null %".
+  if (t == null || rh == null || t < 22) {
     el.className = 'badge badge--spacer';
     return el;
   }

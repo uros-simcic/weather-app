@@ -771,3 +771,11 @@ obs_time,station,network,variable,value
 2026-07-25T23:00:00,CAPRIVA,fvg,wind_speed_10m,3.0
 2026-07-25T23:00:00,CORMONS,fvg,temperature_2m,21.2
 2026-07-25T23:00:00,CORMONS,fvg,wind_speed_10m,3.0
+2026-07-26T00:40:00,NOVA_GORICA,arso,temperature_2m,19.0
+2026-07-26T00:40:00,NOVA_GORICA,arso,relative_humidity_2m,78.0
+2026-07-26T00:40:00,NOVA_GORICA,arso,wind_speed_10m,3.0
+2026-07-26T00:40:00,NOVA_GORICA,arso,wind_direction_10m,122.0
+2026-07-26T00:00:00,CAPRIVA,fvg,temperature_2m,18.5
+2026-07-26T00:00:00,CAPRIVA,fvg,wind_speed_10m,5.0
+2026-07-26T00:00:00,CORMONS,fvg,temperature_2m,20.1
+2026-07-26T00:00:00,CORMONS,fvg,wind_speed_10m,3.0

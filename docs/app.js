@@ -177,7 +177,9 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
 
   // Calm wind renders an invisible spacer, not nothing — the cell uses
   // space-between, so a missing slot would redistribute all the others.
-  if (wind_kmh != null && wind_kmh > 5) {
+  // Direction must be known too: coercing a null bearing to 0 drew a confident
+  // "from the north" arrow when the station reported speed but no direction.
+  if (wind_kmh != null && wind_kmh > 5 && wind_dir != null) {
     cell.appendChild(makeWindArrow(wind_dir, wind_kmh));
   } else {
     const spacer = document.createElementNS(SVGNS, 'svg');
@@ -273,24 +275,36 @@ function renderTopRow(forecast, now) {
     selectedDate = null; // selection went stale (e.g. rolled past midnight)
   }
 
-  // Default: zdaj + today's not-yet-expired blocks.
-  row.appendChild(buildCell({
-    label: 'zdaj',
-    icon: now.icon,
-    drops: 0,
-    pop: null,
-    temps: [{ value: now.t }],
-    rh: now.rh,
-    uv: now.uv,
-    wind_kmh: now.wind_kmh,
-    wind_dir: now.wind_dir,
-    isZdaj: true,
-  }));
+  // Default: zdaj + today's not-yet-expired blocks. `now` is null when both
+  // now.json and the forecast fallback failed — show the forecast without a
+  // current-conditions cell rather than fabricating one.
+  if (now) {
+    row.appendChild(buildCell({
+      label: 'zdaj',
+      icon: now.icon,
+      drops: now.drops || 0,
+      pop: null,
+      temps: [{ value: now.t }],
+      rh: now.rh,
+      uv: now.uv,
+      wind_kmh: now.wind_kmh,
+      wind_dir: now.wind_dir,
+      isZdaj: true,
+    }));
+  }
 
   const nowTs = Date.now();
   const todayDay = tIdx >= 0 ? days[tIdx] : days[0];
-  const todayBlocks = (todayDay && todayDay.blocks) || forecast.blocks || [];
-  for (const block of todayBlocks) {
+  const nextDay = tIdx >= 0 ? days[tIdx + 1] : days[1];
+  // Include tomorrow's blocks as candidates: a day's list runs from 23:00 the
+  // previous evening, so after 23:00 every one of today's blocks has expired
+  // while the block actually covering "now" (tomorrow's 23-02) sits in the next
+  // day. Without this the top row showed only zdaj for an hour every night.
+  const candidates = [
+    ...((todayDay && todayDay.blocks) || forecast.blocks || []),
+    ...((nextDay && nextDay.blocks) || []),
+  ];
+  for (const block of candidates) {
     if (new Date(block.end).getTime() <= nowTs) continue;
     row.appendChild(blockCell(block));
   }
@@ -401,8 +415,13 @@ function renderStaleBanner(forecast) {
 // console, never silently show stale/wrong data as if it were fresh (§7.8).
 function nowFromForecastFallback(forecast) {
   const nowTs = Date.now();
-  const block = forecast.blocks.find((b) => new Date(b.start) <= nowTs && nowTs < new Date(b.end))
-    || forecast.blocks[0];
+  // Search every day's blocks, not just the top-level (today's) list — after
+  // 23:00 the bracketing block belongs to tomorrow. Returning blocks[0] when
+  // nothing brackets now would have shown last night's 23:00 reading as current.
+  const all = (forecast.days || []).flatMap((d) => d.blocks || []);
+  const block = (all.length ? all : forecast.blocks || [])
+    .find((b) => new Date(b.start) <= nowTs && nowTs < new Date(b.end));
+  if (!block) return null;
   return {
     t: block.t, rh: block.rh, wind_kmh: block.wind_kmh, wind_dir: block.wind_dir,
     icon: block.icon, uv: block.uv, hail: { status: 'none' },
@@ -422,16 +441,25 @@ async function loadAndRender() {
   try {
     now = await fetch('now.json?t=' + Date.now()).then((r) => r.json());
     if (now == null || typeof now.t !== 'number') throw new Error('now.json missing expected fields');
+    // measured_at is naive Ljubljana local; compare against the same wall clock.
+    // Without this an outage froze now.json and hours-old readings kept being
+    // presented as current, with no banner and a live-ticking header clock.
+    const measuredAge = (Date.now() - new Date(now.measured_at + '+02:00').getTime()) / 60000;
+    if (Number.isFinite(measuredAge) && measuredAge > 120) {
+      throw new Error('now.json is ' + Math.round(measuredAge) + ' min old');
+    }
   } catch (e) {
-    console.error('now.json broken, falling back to current forecast block', e);
+    console.error('now.json unusable, falling back to the current forecast block', e);
     now = nowFromForecastFallback(forecast);
   }
 
   renderHeader(forecast);
   renderStaleBanner(forecast);
+  // A null fallback means no block brackets the current time either; render the
+  // forecast rows without a zdaj cell rather than inventing a reading.
   renderTopRow(forecast, now);
   renderWeekRow(forecast, now);
-  renderHailPill(now);
+  if (now) renderHailPill(now);
 }
 
 async function init() {

@@ -108,7 +108,11 @@ def fetch_arso(run_time, run_dt):
         valid = entry.get("valid")
         if not valid:
             continue
-        valid_dt = datetime.fromisoformat(valid).astimezone(run_dt.tzinfo).replace(tzinfo=None)
+        # Same trap as fetch_obs.py: run_dt is naive so .astimezone(run_dt.tzinfo)
+        # is .astimezone(None) = the runner's timezone (UTC in CI), which shifted
+        # every logged ARSO lead_hours by -2 and corrupted the training archive.
+        valid_dt = (datetime.fromisoformat(valid)
+                    .astimezone(ZoneInfo(TIMEZONE)).replace(tzinfo=None))
         lead_hours = round((valid_dt - run_dt).total_seconds() / 3600)
         for field, var in ARSO_VAR_MAP.items():
             raw = entry.get(field)

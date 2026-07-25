@@ -32,6 +32,10 @@ VERIFY_CSV = os.path.join(DATA_DIR, "verification.csv")
 VERIFY_REPORT = os.path.join(DATA_DIR, "verification_report.md")
 
 REPORT_DAYS = 30
+# Observations logged before this point used the runner's timezone (UTC in CI)
+# rather than Europe/Ljubljana, so their hours are 2 off and would corrupt any
+# score computed from them. Scoring starts from the fix.
+TZ_FIX_CUTOFF = datetime(2026, 7, 26)
 # Both log_published.csv and log_obs.csv use the pipeline's own variable names,
 # so no translation is needed. (An earlier VAR_MAP translated to forecast.json's
 # short keys — 't', 'rh' — which never matched the log, so every lookup missed
@@ -40,7 +44,12 @@ SCORED_VARS = ("temperature_2m", "relative_humidity_2m", "wind_speed_10m")
 
 
 def load_observations():
-    """{date: {variable: {hour: median_value}}} from ARSO stations only."""
+    """{date: {variable: {hour: median_value}}} from ARSO stations only.
+
+    Both logs are naive Europe/Ljubljana. That is only true for rows written
+    after the astimezone fix in fetch_obs.py — earlier rows are UTC and would
+    be scored 2 hours out of step against the forecast, so they are skipped.
+    """
     if not os.path.exists(OBS_LOG):
         return {}
     per_hour = defaultdict(list)
@@ -53,6 +62,8 @@ def load_observations():
                 value = float(r["value"])
             except (ValueError, KeyError):
                 continue
+            if dt < TZ_FIX_CUTOFF:
+                continue  # logged on the old, UTC-shifted clock
             per_hour[(dt.date().isoformat(), r["variable"], dt.hour)].append(value)
 
     out = defaultdict(lambda: defaultdict(dict))

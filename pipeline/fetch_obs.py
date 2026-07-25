@@ -12,7 +12,7 @@ import csv
 import json
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from statistics import median
 from zoneinfo import ZoneInfo
 
@@ -33,11 +33,12 @@ NOW_PATH = os.path.join(SITE_DIR, "now.json")
 FORECAST_PATH = os.path.join(SITE_DIR, "forecast.json")
 CSV_FIELDS = ["obs_time", "station", "network", "variable", "value"]
 
-# ARSO's own live-conditions viewer publishes with ~2h10m lag (verified: at
-# 12:00 real time, the latest bucket was 09:50) — the spec's 45-min threshold
-# assumed near-real-time publishing that doesn't match reality; at 45 min every
-# station would always read stale and zdaj would never show real measurements.
-STALE_MINUTES = 150
+# ARSO actually publishes within ~10 minutes (measured: 20:39 local, newest
+# reading valid 20:30). An earlier note here claimed a ~2h10m lag and loosened
+# this to 150 min — that "lag" was really the UTC/CEST offset introduced by the
+# astimezone bug above, and the loose threshold then hid genuinely stale data.
+# Back to the spec's §4.2 value, with a little headroom for a slow publish.
+STALE_MINUTES = 60
 SANITY_BOUNDS = {
     "temperature_2m": (-25, 45), "relative_humidity_2m": (1, 100),
     "wind_speed_10m": (0, 180),
@@ -57,11 +58,14 @@ def append_log(rows):
 
 
 def fetch_arso_stations(now_dt):
-    """ARSO publishes all stations in one JSON per 10-min bucket, with a
-    publishing lag — the current bucket often 404s, so step back until one exists."""
-    base = now_dt - timedelta(minutes=now_dt.minute % 10, seconds=now_dt.second)
+    """ARSO publishes all stations in one JSON per 10-min bucket. The filenames
+    are UTC-stamped, so the search must start from UTC — starting from Ljubljana
+    wall-clock spent the first ~12 probes on buckets that cannot exist yet
+    (and made the feed look ~2h behind when it is really ~10 min behind)."""
+    now_utc = datetime.now(timezone.utc)
+    base = now_utc.replace(second=0, microsecond=0) - timedelta(minutes=now_utc.minute % 10)
     data = None
-    for steps_back in range(20):  # covers the verified ~2h10m publish lag
+    for steps_back in range(12):  # 2h of genuine tolerance; real lag is ~10 min
         bucket = base - timedelta(minutes=10 * steps_back)
         url = ARSO_OBS_URL_TEMPLATE.format(timestamp=bucket.strftime("%Y%m%d-%H%M"))
         try:
@@ -74,7 +78,7 @@ def fetch_arso_stations(now_dt):
         except (requests.RequestException, ValueError) as e:
             print(f"arso obs: request failed ({e})", file=sys.stderr)
     if data is None:
-        print("arso obs: no bucket found in last 200 minutes", file=sys.stderr)
+        print("arso obs: no bucket found in the last 2 hours", file=sys.stderr)
         return {}
 
     wanted = {ARSO_STATION_BILJE: "BILJE", ARSO_STATION_NOVA_GORICA: "NOVA_GORICA"}
@@ -88,7 +92,12 @@ def fetch_arso_stations(now_dt):
         if not days or not days[0].get("timeline"):
             continue
         entry = days[0]["timeline"][0]
-        obs_time = datetime.fromisoformat(entry["valid"]).astimezone(now_dt.tzinfo).replace(tzinfo=None)
+        # now_dt is naive, so its tzinfo is None — and .astimezone(None) converts
+        # to the SYSTEM timezone, which is UTC on the GitHub runner. That silently
+        # recorded every observation 2h early in production while looking correct
+        # on a machine already set to Ljubljana. Convert explicitly.
+        obs_time = (datetime.fromisoformat(entry["valid"])
+                    .astimezone(ZoneInfo(TIMEZONE)).replace(tzinfo=None))
         out[wanted[code]] = {
             "obs_time": obs_time,
             "temperature_2m": _to_float(entry.get("t")),
@@ -116,7 +125,11 @@ def fetch_fvg_stations():
         if not obs_time_m:
             continue
         try:
-            obs_time = datetime.strptime(obs_time_m, "%d/%m/%Y %H.%M UTC")
+            # The field is explicitly labelled UTC; parsing it naive put FVG rows
+            # on a different clock from the ARSO rows in the same log column.
+            obs_time = (datetime.strptime(obs_time_m, "%d/%m/%Y %H.%M UTC")
+                        .replace(tzinfo=timezone.utc)
+                        .astimezone(ZoneInfo(TIMEZONE)).replace(tzinfo=None))
         except ValueError:
             continue
         out[name] = {

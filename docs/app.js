@@ -38,12 +38,25 @@ function makePop(pop) {
   return el;
 }
 
+// Cold (blue) outranks everything, including the muted morning styling — a
+// freezing morning is worth flagging. Hot stays off the morning value, which
+// the spec keeps muted grey so the afternoon reads as the day's headline.
+function tempClass(value, variant) {
+  if (value == null) return variant || '';
+  // Compare the rounded number, i.e. the one actually on screen: raw 4.6 prints
+  // as "5" and must not be blue, raw 29.6 prints as "30" and must be red.
+  const shown = Math.round(value);
+  if (shown < 5) return 'cell__temp--cold';
+  if (shown >= 30 && variant !== 'cell__temp--am') return 'cell__temp--hot';
+  return variant || '';
+}
+
 function makeTemps(...parts) {
   const wrap = document.createElement('div');
   wrap.className = 'cell__temps';
-  for (const { value, cls } of parts) {
+  for (const { value, variant } of parts) {
     const span = document.createElement('span');
-    span.className = cls;
+    span.className = tempClass(value, variant);
     span.textContent = Math.round(value) + '°';
     span.setAttribute('aria-label', Math.round(value) + ' stopinj Celzija');
     wrap.appendChild(span);
@@ -208,7 +221,7 @@ function blockCell(block) {
     icon: block.icon,
     drops: block.drops,
     pop: block.pop,
-    temps: [{ value: block.t, cls: block.t >= 30 ? 'cell__temp--hot' : '' }],
+    temps: [{ value: block.t }],
     rh: block.rh,
     uv: block.uv,
     wind_kmh: block.wind_kmh,
@@ -216,11 +229,28 @@ function blockCell(block) {
   });
 }
 
+// Today's date in Brda's timezone as YYYY-MM-DD, matching forecast.json's keys.
+// Derived from the clock, never from days[0]: a skipped or late pipeline run
+// leaves yesterday first in the file, and assuming otherwise showed an empty
+// "today" while today's real forecast sat in the week row labelled as tomorrow.
+function localToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/Ljubljana',
+  }).format(new Date());
+}
+
+// Index of today in days[]. -1 when the data predates today entirely (a run
+// skipped for more than a day), in which case callers fall back to days[0].
+function todayIndex(days) {
+  return days.findIndex((d) => d.date === localToday());
+}
+
 function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
   row.innerHTML = '';
   const days = forecast.days || [];
-  const todayDate = days.length ? days[0].date : null;
+  const tIdx = todayIndex(days);
+  const todayDate = tIdx >= 0 ? days[tIdx].date : (days.length ? days[0].date : null);
 
   // A future day is selected: show all its blocks, no zdaj. Open scrolled to
   // the 08-11 block so the morning leads (the pre-dawn blocks are legitimately
@@ -247,7 +277,7 @@ function renderTopRow(forecast, now) {
     icon: now.icon,
     drops: 0,
     pop: null,
-    temps: [{ value: now.t, cls: now.t >= 30 ? 'cell__temp--hot' : '' }],
+    temps: [{ value: now.t }],
     rh: now.rh,
     uv: now.uv,
     wind_kmh: now.wind_kmh,
@@ -256,7 +286,8 @@ function renderTopRow(forecast, now) {
   }));
 
   const nowTs = Date.now();
-  const todayBlocks = (days.length && days[0].blocks) || forecast.blocks || [];
+  const todayDay = tIdx >= 0 ? days[tIdx] : days[0];
+  const todayBlocks = (todayDay && todayDay.blocks) || forecast.blocks || [];
   for (const block of todayBlocks) {
     if (new Date(block.end).getTime() <= nowTs) continue;
     row.appendChild(blockCell(block));
@@ -267,17 +298,20 @@ function renderTopRow(forecast, now) {
 function renderWeekRow(forecast, now) {
   const row = document.getElementById('week-row');
   row.innerHTML = '';
-  // Skip today (days[0]) — it already fills the top row; showing it here too
-  // is redundant. The week row is the 7 days ahead.
-  for (const day of forecast.days.slice(1)) {
+  // Days after today only. Today already fills the top row, and any day before
+  // it (left over when a pipeline run is skipped) is in the past — neither
+  // belongs here.
+  const tIdx = todayIndex(forecast.days);
+  const startIdx = tIdx >= 0 ? tIdx + 1 : 1;
+  for (const day of forecast.days.slice(startIdx)) {
     row.appendChild(buildCell({
       label: day.name,
       icon: day.icon,
       drops: day.drops,
       pop: day.pop,
       temps: [
-        { value: day.t_am, cls: 'cell__temp--am' },
-        { value: day.t_pm, cls: day.t_pm >= 30 ? 'cell__temp--hot' : 'cell__temp--pm' },
+        { value: day.t_am, variant: 'cell__temp--am' },
+        { value: day.t_pm, variant: 'cell__temp--pm' },
       ],
       rh: day.rh_pm,
       uv: day.uv_max,
@@ -400,7 +434,9 @@ async function loadAndRender() {
 
 async function init() {
   // Same-origin, self-authored sprite (not user/API data) — innerHTML is safe here.
-  const iconsResp = await fetch('icons.svg');
+  // Cache-busted like the JSON: without it a browser keeps the old sprite after
+  // an icon change, so redesigned symbols never reach anyone already using the page.
+  const iconsResp = await fetch('icons.svg?t=' + Date.now());
   const iconsText = await iconsResp.text();
   const iconsHolder = document.getElementById('icons-holder');
   iconsHolder.innerHTML = iconsText;

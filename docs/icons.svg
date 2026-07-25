@@ -46,12 +46,21 @@
       </g>
     </g>
   </symbol>
+  <!-- Snow: white cloud with a grey outline (the conventional snow symbol, not
+       the dark rain cloud) and white flakes. Each flake is drawn twice — a wider
+       grey stroke under a narrower white one — so white-on-light-grey still
+       reads clearly against the page background. -->
   <symbol id="icon-snow" viewBox="0 0 24 24">
     <g transform="translate(0,-2)">
-      <path d="M6 14a4.5 4.5 0 0 1-.4-9 6 6 0 0 1 11.4 1.6A4 4 0 0 1 16.5 14H6z" fill="#4a4a47"/>
-      <g stroke="#a8d0ec" stroke-width="1.4" stroke-linecap="round">
-        <g transform="translate(8,20)"><line x1="-1.6" y1="0" x2="1.6" y2="0"/><line x1="-0.8" y1="-1.4" x2="0.8" y2="1.4"/><line x1="0.8" y1="-1.4" x2="-0.8" y2="1.4"/></g>
-        <g transform="translate(16,20)"><line x1="-1.6" y1="0" x2="1.6" y2="0"/><line x1="-0.8" y1="-1.4" x2="0.8" y2="1.4"/><line x1="0.8" y1="-1.4" x2="-0.8" y2="1.4"/></g>
+      <path d="M6 14a4.5 4.5 0 0 1-.4-9 6 6 0 0 1 11.4 1.6A4 4 0 0 1 16.5 14H6z"
+            fill="#fff" stroke="#8a8a86" stroke-width="1.5"/>
+      <g stroke="#8a8a86" stroke-width="2.6" stroke-linecap="round">
+        <g transform="translate(8,20)"><line x1="-1.7" y1="0" x2="1.7" y2="0"/><line x1="-0.9" y1="-1.5" x2="0.9" y2="1.5"/><line x1="0.9" y1="-1.5" x2="-0.9" y2="1.5"/></g>
+        <g transform="translate(16,20)"><line x1="-1.7" y1="0" x2="1.7" y2="0"/><line x1="-0.9" y1="-1.5" x2="0.9" y2="1.5"/><line x1="0.9" y1="-1.5" x2="-0.9" y2="1.5"/></g>
+      </g>
+      <g stroke="#fff" stroke-width="1.5" stroke-linecap="round">
+        <g transform="translate(8,20)"><line x1="-1.7" y1="0" x2="1.7" y2="0"/><line x1="-0.9" y1="-1.5" x2="0.9" y2="1.5"/><line x1="0.9" y1="-1.5" x2="-0.9" y2="1.5"/></g>
+        <g transform="translate(16,20)"><line x1="-1.7" y1="0" x2="1.7" y2="0"/><line x1="-0.9" y1="-1.5" x2="0.9" y2="1.5"/><line x1="0.9" y1="-1.5" x2="-0.9" y2="1.5"/></g>
       </g>
     </g>
   </symbol>

@@ -119,6 +119,7 @@ body {
 
 .cell__temps { display: flex; gap: 6px; font-size: 25px; font-weight: 500; flex-shrink: 0; }
 .cell__temp--hot { color: var(--red); }
+.cell__temp--cold { color: var(--blue-rain); }
 .cell__temp--am { color: var(--grey-muted); }
 .cell__temp--pm { color: var(--near-black); }
 

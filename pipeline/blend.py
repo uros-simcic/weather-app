@@ -132,11 +132,38 @@ def weighted_mean(member_values, maes, power):
     return num / den
 
 
+def combine_weather_codes(member_values):
+    """WMO codes are categories, not quantities — averaging them invents weather.
+    Two members both forecasting rain (63 and 81) average to 72, which is a snow
+    code; rain 61 with storm 95 averages to 78 and renders as a plain cloud,
+    hiding the storm. So map each member to its icon, take the majority icon
+    (ties broken by severity), and return a real code from the winning group."""
+    by_icon = {}
+    for code in member_values.values():
+        by_icon.setdefault(wmo_to_icon(code), []).append(code)
+    winner = max(by_icon, key=lambda ic: (len(by_icon[ic]), ICON_SEVERITY.index(ic)))
+    # Most severe actual code among the members that agreed on this icon.
+    return max(by_icon[winner], key=lambda c: ICON_SEVERITY.index(wmo_to_icon(c)))
+
+
+def circular_mean_deg(values):
+    """Wind direction wraps at 360: a plain mean of 350 and 10 gives 180, the
+    exact opposite heading. Average the unit vectors instead."""
+    x = sum(math.cos(math.radians(v)) for v in values)
+    y = sum(math.sin(math.radians(v)) for v in values)
+    if abs(x) < 1e-9 and abs(y) < 1e-9:  # directions cancel out entirely
+        return values[0]
+    return math.degrees(math.atan2(y, x)) % 360
+
+
 def blend_hourly(data, now_dt, models, decisions):
     """Returns {var: {time_str: value}} for each of our training variables,
-    plus raw per-model series for anything not in TRAIN_VARS (weather_code,
-    uv_index, precipitation_probability, cloud_cover — averaged as-is, no
-    trained correction for these per spec §6's four regression targets)."""
+    plus raw per-model series for anything not in TRAIN_VARS (uv_index,
+    precipitation_probability, cloud_cover — averaged as-is, no trained
+    correction for these per spec §6's four regression targets).
+
+    weather_code and wind_direction_10m are combined by category/angle rather
+    than averaged — see the two helpers above."""
     hourly = data.get("hourly", {})
     times = hourly.get("time", [])
     out = {var: {} for var in OPEN_METEO_HOURLY_VARS}
@@ -156,6 +183,14 @@ def blend_hourly(data, now_dt, models, decisions):
                 if series is not None and i < len(series) and series[i] is not None:
                     member_values[model_name] = series[i]
             if not member_values:
+                continue
+
+            # Non-numeric combines first: these must never go through a mean.
+            if var == "weather_code":
+                out[var][t] = combine_weather_codes(member_values)
+                continue
+            if var == "wind_direction_10m":
+                out[var][t] = circular_mean_deg(list(member_values.values()))
                 continue
 
             method = chosen_method(var, bucket, decisions) if var in TRAIN_VARS else "equal_weight_mean"

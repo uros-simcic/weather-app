@@ -2,7 +2,11 @@ name: forecast
 
 on:
   schedule:
-    - cron: "30 4 * * *"
+    # Every 6h rather than once daily. GitHub's scheduler drops runs under load
+    # (2026-07-25 was skipped outright, leaving the page on the previous day's
+    # forecast), so extra slots give the day several chances to refresh — and
+    # the models publish new runs through the day anyway.
+    - cron: "30 4,10,16,22 * * *"
   workflow_dispatch:
 
 permissions:

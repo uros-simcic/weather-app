@@ -1,11 +1,11 @@
 {
-  "measured_at": "2026-07-26T19:59:00",
-  "t": 22.9,
-  "rh": 71.0,
+  "measured_at": "2026-07-26T21:23:00",
+  "t": 21.3,
+  "rh": 77.0,
   "wind_kmh": 5.0,
-  "wind_dir": 338.0,
-  "icon": "storm",
-  "uv": 1,
+  "wind_dir": 112.0,
+  "icon": "rain",
+  "uv": 0,
   "source": "stations",
   "stations_used": [
     "NOVA_GORICA"

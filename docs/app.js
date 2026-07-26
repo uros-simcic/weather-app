@@ -8,6 +8,11 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
 let selectedDate = null;
+// Which day the top row was last auto-scrolled for, and the scroll offset at
+// the moment of the last rebuild — together these keep a background refresh
+// from moving the row under the user.
+let lastScrolledDate = null;
+let preservedScrollLeft = 0;
 
 function iconRef(name, drops) {
   let resolved = ICON_WHITELIST.has(name) ? name : 'cloud';
@@ -57,8 +62,15 @@ function makeTemps(...parts) {
   for (const { value, variant } of parts) {
     const span = document.createElement('span');
     span.className = tempClass(value, variant);
-    span.textContent = Math.round(value) + '°';
-    span.setAttribute('aria-label', Math.round(value) + ' stopinj Celzija');
+    if (value == null) {
+      // Math.round(null) is 0, which printed a confident blue "0°" for a block
+      // where no member reported a temperature at all.
+      span.textContent = '–';
+      span.setAttribute('aria-label', 'temperatura ni na voljo');
+    } else {
+      span.textContent = Math.round(value) + '°';
+      span.setAttribute('aria-label', Math.round(value) + ' stopinj Celzija');
+    }
     wrap.appendChild(span);
   }
   return wrap;
@@ -76,8 +88,11 @@ function makeHumidityBadge(t, rh) {
   if (rh >= 60 && t >= 26) cls = 'badge--red';
   else if (rh >= 60 && t >= 22) cls = 'badge--amber';
   el.className = 'badge ' + cls;
-  el.textContent = rh + ' %';
-  el.setAttribute('aria-label', 'Vlažnost ' + rh + ' odstotkov');
+  // The station median can be fractional (47 and 48 -> 47.5); every other
+  // refresh showed an integer, so round for a consistent badge.
+  const shown = Math.round(rh);
+  el.textContent = shown + ' %';
+  el.setAttribute('aria-label', 'Vlažnost ' + shown + ' odstotkov');
   return el;
 }
 
@@ -200,12 +215,22 @@ function renderHeader(forecast) {
   document.getElementById('header-sunrise').textContent = forecast.sun.sunrise;
   document.getElementById('header-sunset').textContent = forecast.sun.sunset;
 
-  function tick() {
+  tickClock();
+}
+
+// Module-level so re-arming replaces the timer instead of stacking another one.
+// renderHeader runs on every focus/pageshow/visibilitychange and on a 30-minute
+// timer, so starting an interval inside it leaked one clock per wake event.
+let clockTimer = null;
+
+function tickClock() {
+  const paint = () => {
     document.getElementById('header-clock').textContent =
       new Intl.DateTimeFormat('sl-SI', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Ljubljana' }).format(new Date());
-  }
-  tick();
-  setInterval(tick, 1000);
+  };
+  paint();
+  if (clockTimer !== null) clearInterval(clockTimer);
+  clockTimer = setInterval(paint, 1000);
 }
 
 // Scroll the row so targetCell sits at the left edge. The distance between two
@@ -251,6 +276,9 @@ function todayIndex(days) {
 
 function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
+  // Captured before the rebuild so a same-day re-render can restore the user's
+  // reading position instead of snapping back.
+  preservedScrollLeft = row.scrollLeft;
   row.innerHTML = '';
   const days = forecast.days || [];
   const tIdx = todayIndex(days);
@@ -269,7 +297,15 @@ function renderTopRow(forecast, now) {
         if (block.label === '08-11') startCell = cell;
         row.appendChild(cell);
       }
-      scrollRowTo(row, firstCell, startCell);
+      // Only jump to 08-11 when the selection actually changed. A background
+      // refresh (focus/pageshow/30-min timer) re-renders the same day, and
+      // scrolling then yanked the user back from whatever hour they were reading.
+      if (lastScrolledDate !== selectedDate) {
+        scrollRowTo(row, firstCell, startCell);
+        lastScrolledDate = selectedDate;
+      } else {
+        row.scrollLeft = preservedScrollLeft;
+      }
       return;
     }
     selectedDate = null; // selection went stale (e.g. rolled past midnight)
@@ -381,18 +417,34 @@ function panelFallback(panel, href, label) {
 }
 
 function renderPanels() {
-  const radarImg = document.getElementById('radar-img');
-  radarImg.onerror = () => panelFallback(
-    document.getElementById('radar-panel'),
-    'https://meteo.arso.gov.si/met/sl/weather/observ/radar', 'Radar padavin (ARSO)');
-  radarImg.src = RADAR_ANIM_URL;
+  // Cache-bust on every call: these are live nowcast loops, and without this a
+  // page left open all day kept showing the animation it loaded at startup.
+  const bust = '?t=' + Date.now();
 
-  const satVideo = document.getElementById('satellite-video');
-  satVideo.onerror = () => panelFallback(
-    document.getElementById('satellite-panel'),
-    'https://meteo.arso.gov.si/met/sl/weather/observ/satelit', 'Satelitska slika (ARSO)');
-  satVideo.querySelector('source').src = SATELLITE_ANIM_URL;
-  satVideo.load();
+  const radarPanel = document.getElementById('radar-panel');
+  const radarImg = radarPanel && radarPanel.querySelector('img');
+  if (radarImg) {
+    radarImg.onerror = () => panelFallback(
+      radarPanel,
+      'https://meteo.arso.gov.si/met/sl/weather/observ/radar', 'Radar padavin (ARSO)');
+    radarImg.src = RADAR_ANIM_URL + bust;
+  }
+
+  const satPanel = document.getElementById('satellite-panel');
+  const satVideo = satPanel && satPanel.querySelector('video');
+  if (satVideo) {
+    // Set src on the media element itself rather than on a <source> child: a
+    // media element with a <source> never fires `error` on itself — only the
+    // <source> does — so the fallback link could never appear if ARSO moved
+    // the file (verified in Chrome).
+    const staleSource = satVideo.querySelector('source');
+    if (staleSource) staleSource.remove();
+    satVideo.onerror = () => panelFallback(
+      satPanel,
+      'https://meteo.arso.gov.si/met/sl/weather/observ/satelit', 'Satelitska slika (ARSO)');
+    satVideo.src = SATELLITE_ANIM_URL + bust;
+    satVideo.load();
+  }
 }
 
 function renderStaleBanner(forecast) {
@@ -455,6 +507,9 @@ async function loadAndRender() {
 
   renderHeader(forecast);
   renderStaleBanner(forecast);
+  // Radar and satellite are live loops: refresh them alongside the data, or a
+  // page left open keeps showing the animation it loaded hours ago.
+  renderPanels();
   // A null fallback means no block brackets the current time either; render the
   // forecast rows without a zdaj cell rather than inventing a reading.
   renderTopRow(forecast, now);
@@ -472,8 +527,7 @@ async function init() {
   iconsHolder.innerHTML = iconsText;
 
   renderLinks();
-  renderPanels();
-  await loadAndRender();
+  await loadAndRender();  // renders the panels too
 
   // Mobile browsers suspend timers aggressively; pageshow/focus cover the
   // wake-up paths visibilitychange misses, so a reopened page can't keep

@@ -36,6 +36,33 @@ ICON_SEVERITY = ["sun", "partly", "cloud", "fog", "rain", "snow", "storm"]
 # members, ship the equal-weight mean instead — it stays anchored to real data.
 MIN_MEMBERS_FOR_ML = 3
 
+# Rain probability is never certain, so it is never displayed as 99 or 100.
+# On 2026-07-26 all six models forecast 7-28 mm and both probability-carrying
+# members said 98-100%; the stations measured 0.0 mm under a sunny sky. A
+# summer convective bust like that is ordinary meteorology — claiming certainty
+# about it is not. Note also that only ECMWF and GFS publish a probability at
+# all; the four high-resolution regional models return null, so this number
+# comes from the two coarsest members exactly when terrain matters most.
+MAX_POP = 95
+
+
+# The frontend only renders a probability at >= 30% (spec §7.5). Apply that gate
+# to the raw value here rather than after rounding, otherwise a blended 28%
+# rounded up to 30 and got displayed — a sub-threshold number, shown higher than
+# any model produced.
+MIN_POP_SHOWN = 30
+
+
+def display_pop(values):
+    """Round to the nearest 5 and cap, so the UI can never promise certainty.
+    Returns None below the display threshold so the key is simply absent."""
+    if not values:
+        return None
+    raw = max(values)
+    if raw < MIN_POP_SHOWN:
+        return None
+    return min(MAX_POP, round(raw / 5) * 5)
+
 
 def worst_icon(icons):
     icons = [i for i in icons if i]
@@ -207,6 +234,12 @@ def blend_hourly(data, now_dt, models, decisions):
                 import pandas as pd
                 X = pd.DataFrame([row])[bundle["feature_columns"]].astype(float)
                 value = float(bundle["model"].predict(X)[0])
+                # A regressor has no notion of "rain cannot be negative": dry
+                # hours accumulated small negative values that subtracted from
+                # the daily total, enough to push 1.05 mm to 0.95 and flip the
+                # day from one drop to none.
+                if var == "precipitation":
+                    value = max(0.0, value)
             elif method.startswith("weighted_mean_p") and maes:
                 value = weighted_mean(member_values, maes, int(method[-1]))
             elif method == "lightgbm_blend" and maes:
@@ -261,8 +294,9 @@ def build_blocks(blended, target_date):
             "drops": block_drops(precip_sum),
             "members_used": OPEN_METEO_MODELS,
         }
-        if pops:
-            block["pop"] = round(max(pops) / 5) * 5
+        block_pop = display_pop(pops)
+        if block_pop is not None:
+            block["pop"] = block_pop
         blocks.append(block)
         start = end
     return blocks
@@ -313,8 +347,9 @@ def build_days(data, blended):
             "precip_mm": round(precip_sum, 1),
             "drops": daily_drops(precip_sum),
         }
-        if pops_day:
-            day["pop"] = round(max(pops_day) / 5) * 5
+        day_pop = display_pop(pops_day)
+        if day_pop is not None:
+            day["pop"] = day_pop
         day["blocks"] = build_blocks(blended, datetime.fromisoformat(d).date())
         days.append(day)
     return days

@@ -285,17 +285,18 @@ function updateViewDay(dateStr) {
     year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/Ljubljana',
   }).format(new Date(Date.now() + 86400000));
 
+  // Lowercase throughout: Slovenian does not capitalise day names mid-sentence,
+  // and the label reads as part of "Brda: danes, …".
   let label;
-  if (dateStr === today) label = 'Danes';
-  else if (dateStr === tomorrow) label = 'Jutri';
+  if (dateStr === today) label = 'danes';
+  else if (dateStr === tomorrow) label = 'jutri';
   else {
-    const name = new Intl.DateTimeFormat('sl-SI', {
+    label = new Intl.DateTimeFormat('sl-SI', {
       weekday: 'long', timeZone: 'Europe/Ljubljana',
-    }).format(d);
-    label = name.charAt(0).toUpperCase() + name.slice(1);
+    }).format(d).toLowerCase();
   }
   const date = new Intl.DateTimeFormat('sl-SI', {
-    day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Ljubljana',
+    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Ljubljana',
   }).format(d).replace(/\s/g, '');
   el.textContent = label + ', ' + date;
 }

@@ -27,7 +27,8 @@ body {
 .page {
   max-width: 400px;
   margin: 0 auto;
-  padding: 16px 12px 24px;
+  /* Half the previous 16px top gap — the header sat lower than it needed to. */
+  padding: 8px 12px 24px;
 }
 
 /* Glass look without backdrop-filter. The page background is a smooth gradient,

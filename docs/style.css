@@ -30,8 +30,17 @@ body {
   padding: 16px 12px 24px;
 }
 
+/* Glass look without backdrop-filter. The page background is a smooth gradient,
+   and blurring a smooth gradient returns almost the same gradient — so a real
+   backdrop-filter would cost GPU work on every surface for virtually no visual
+   gain, and 10+ blurred surfaces is where a Chromebook or low-end Android
+   starts dropping frames while scrolling. A translucent fill with a light
+   border and an inner highlight reads as glass and costs nothing. */
+.glass,
 .card {
-  background: rgba(255, 255, 255, .45);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 255, 255, .34));
+  border: 1px solid rgba(255, 255, 255, .75);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .06), inset 0 1px 0 rgba(255, 255, 255, .85);
   border-radius: 12px;
 }
 
@@ -56,12 +65,21 @@ body {
   align-items: center;
   /* 4px bottom + the row's own 4px top padding = the same 8px gap the two
      button rows have, so the vertical rhythm is uniform down the page. */
-  padding: 4px 4px 4px 14px;
-  font-size: 12px;
+  padding: 4px 4px 4px 4px;
+  /* justify-content: space-between spreads the four panels edge to edge, and
+     the gap guarantees they never touch even when the line is at its tightest. */
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
-.header__place { font-size: 16px; font-weight: 700; flex-shrink: 0; }
+/* Four separate glass panels — place, viewed day, date-time, sun times — each
+   standing alone with a visible gap so none of them touch. */
+.header .glass { padding: 4px 7px; flex-shrink: 0; }
+.header__place { font-size: 15px; font-weight: 700; }
+/* Which day the top row is showing: Danes / Jutri / weekday name. */
+.header__viewday { color: var(--grey-label); }
 .header__datetime { display: flex; align-items: center; gap: 4px; }
 .header__right { display: flex; align-items: center; }
 .header__sun-group { display: flex; align-items: center; gap: 6px; }
@@ -125,12 +143,27 @@ body {
 
 /* No background shading — color alone carries the amber/red warning tier. */
 .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 15px;
   font-weight: 500;
   height: 19px;
   line-height: 19px;
   flex-shrink: 0;
 }
+.badge__icon { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* Tap hint on a selected day. Always in the layout, only toggled visible, so
+   the row does not jump when it appears and disappears. */
+.cell__hint {
+  font-size: 10px;
+  line-height: 12px;
+  height: 12px;
+  color: var(--grey-muted);
+  flex-shrink: 0;
+}
+.cell__hint--hidden { visibility: hidden; }
 .badge--amber { color: var(--amber-text); }
 .badge--red { color: var(--red); }
 .badge--neutral { color: var(--grey-label); }

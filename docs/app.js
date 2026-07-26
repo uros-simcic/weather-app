@@ -4,6 +4,8 @@ const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow',
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
+// Bump when icons.svg changes so cached sprites are replaced.
+const ICONS_VERSION = '4';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -91,7 +93,15 @@ function makeHumidityBadge(t, rh) {
   // The station median can be fractional (47 and 48 -> 47.5); every other
   // refresh showed an integer, so round for a consistent badge.
   const shown = Math.round(rh);
-  el.textContent = shown + ' %';
+  // A hygrometer glyph disambiguates this percentage from the rain probability
+  // shown under the icon — otherwise the two read identically.
+  const dial = document.createElementNS(SVGNS, 'svg');
+  dial.classList.add('badge__icon');
+  const use = document.createElementNS(SVGNS, 'use');
+  use.setAttribute('href', '#icon-humidity');
+  dial.appendChild(use);
+  el.appendChild(dial);
+  el.appendChild(document.createTextNode(shown + ' %'));
   el.setAttribute('aria-label', 'Vlažnost ' + shown + ' odstotkov');
   return el;
 }
@@ -162,7 +172,7 @@ function makeWindArrow(dir, speed) {
   return svg;
 }
 
-function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick }) {
+function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick, showHint }) {
   const cell = document.createElement('div');
   cell.className = 'cell card' + (isZdaj || highlight ? ' cell--selected' : '') + (onClick ? ' cell--tappable' : '');
 
@@ -187,6 +197,14 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
   cell.appendChild(iconPop);
 
   cell.appendChild(makeTemps(...temps));
+
+  if (showHint) {
+    const hint = document.createElement('div');
+    hint.className = 'cell__hint cell__hint--hidden';
+    hint.textContent = 'Ponovni klik za danes';
+    cell.appendChild(hint);
+  }
+
   cell.appendChild(makeHumidityBadge(temps[temps.length - 1].value, rh));
   cell.appendChild(makeUv(uv));
 
@@ -206,32 +224,13 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
 }
 
 function renderHeader(forecast) {
-  const now = new Date();
-  const dayName = new Intl.DateTimeFormat('sl-SI', { weekday: 'long', timeZone: 'Europe/Ljubljana' }).format(now);
-  const dateStr = new Intl.DateTimeFormat('sl-SI', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Ljubljana' }).format(now);
-  document.getElementById('header-date').textContent =
-    dayName.charAt(0).toUpperCase() + dayName.slice(1) + ', ' + dateStr.replace(/\./g, '.').replace(/\s/g, '') + ',';
-
+  // Day and date are set by updateViewDay(), which follows the selected day.
+  // The live clock was dropped: the header is two panels now, and a ticking
+  // time is what forced a per-second timer to be re-armed on every render.
   document.getElementById('header-sunrise').textContent = forecast.sun.sunrise;
   document.getElementById('header-sunset').textContent = forecast.sun.sunset;
-
-  tickClock();
 }
 
-// Module-level so re-arming replaces the timer instead of stacking another one.
-// renderHeader runs on every focus/pageshow/visibilitychange and on a 30-minute
-// timer, so starting an interval inside it leaked one clock per wake event.
-let clockTimer = null;
-
-function tickClock() {
-  const paint = () => {
-    document.getElementById('header-clock').textContent =
-      new Intl.DateTimeFormat('sl-SI', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Ljubljana' }).format(new Date());
-  };
-  paint();
-  if (clockTimer !== null) clearInterval(clockTimer);
-  clockTimer = setInterval(paint, 1000);
-}
 
 // Scroll the row so targetCell sits at the left edge. The distance between two
 // cells (targetCell.offsetLeft - firstCell.offsetLeft) is independent of
@@ -274,6 +273,43 @@ function todayIndex(days) {
   return days.findIndex((d) => d.date === localToday());
 }
 
+// "Danes, 26.07.26" — the day and date of whatever the top row is showing, so
+// selecting a future day retitles the header rather than leaving today's date.
+function updateViewDay(dateStr) {
+  const el = document.getElementById('header-when');
+  if (!el || !dateStr) return;
+  // Midday avoids any date rolling when the string is parsed as UTC.
+  const d = new Date(dateStr + 'T12:00:00');
+  const today = localToday();
+  const tomorrow = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/Ljubljana',
+  }).format(new Date(Date.now() + 86400000));
+
+  let label;
+  if (dateStr === today) label = 'Danes';
+  else if (dateStr === tomorrow) label = 'Jutri';
+  else {
+    const name = new Intl.DateTimeFormat('sl-SI', {
+      weekday: 'long', timeZone: 'Europe/Ljubljana',
+    }).format(d);
+    label = name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  const date = new Intl.DateTimeFormat('sl-SI', {
+    day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'Europe/Ljubljana',
+  }).format(d).replace(/\s/g, '');
+  el.textContent = label + ', ' + date;
+}
+
+// Briefly reveals the "back to today" hint on the day the user just selected.
+let hintTimer = null;
+function flashHint() {
+  clearTimeout(hintTimer);
+  const el = document.querySelector('#week-row .cell--selected .cell__hint');
+  if (!el) return;
+  el.classList.remove('cell__hint--hidden');
+  hintTimer = setTimeout(() => el.classList.add('cell__hint--hidden'), 2000);
+}
+
 function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
   // Captured before the rebuild so a same-day re-render can restore the user's
@@ -306,6 +342,7 @@ function renderTopRow(forecast, now) {
       } else {
         row.scrollLeft = preservedScrollLeft;
       }
+      updateViewDay(selectedDate);
       return;
     }
     selectedDate = null; // selection went stale (e.g. rolled past midnight)
@@ -345,6 +382,8 @@ function renderTopRow(forecast, now) {
     row.appendChild(blockCell(block));
   }
   row.scrollLeft = 0;
+  lastScrolledDate = null;  // so re-selecting a day scrolls to 08-11 again
+  updateViewDay(todayDate);
 }
 
 function renderWeekRow(forecast, now) {
@@ -370,11 +409,14 @@ function renderWeekRow(forecast, now) {
       wind_kmh: day.wind_kmh,
       wind_dir: day.wind_dir,
       highlight: selectedDate === day.date,
+      showHint: selectedDate === day.date,
       onClick: () => {
         // Re-tap the selected day to return to the zdaj (today) view.
-        selectedDate = selectedDate === day.date ? null : day.date;
+        const selecting = selectedDate !== day.date;
+        selectedDate = selecting ? day.date : null;
         renderTopRow(forecast, now);
         renderWeekRow(forecast, now);
+        if (selecting) flashHint();
       },
     }));
   }
@@ -519,9 +561,10 @@ async function loadAndRender() {
 
 async function init() {
   // Same-origin, self-authored sprite (not user/API data) — innerHTML is safe here.
-  // Cache-busted like the JSON: without it a browser keeps the old sprite after
-  // an icon change, so redesigned symbols never reach anyone already using the page.
-  const iconsResp = await fetch('icons.svg?t=' + Date.now());
+  // Versioned, not time-stamped. A per-load cache-buster did guarantee fresh
+  // icons but re-downloaded the sprite on every visit, which is part of why
+  // first paint felt slow. Bump ICONS_VERSION whenever icons.svg changes.
+  const iconsResp = await fetch('icons.svg?v=' + ICONS_VERSION);
   const iconsText = await iconsResp.text();
   const iconsHolder = document.getElementById('icons-holder');
   iconsHolder.innerHTML = iconsText;

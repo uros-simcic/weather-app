@@ -70,6 +70,13 @@
       <path d="M13 14l-4 6h3l-1.5 4L16 17h-3.2z" fill="#c93636"/>
     </g>
   </symbol>
+  <!-- Hygrometer dial: reads as an instrument, so the humidity percentage is
+       not mistaken for the rain probability shown under the icon above. -->
+  <symbol id="icon-humidity" viewBox="0 0 24 24">
+    <path d="M4 16.5a8 8 0 0 1 16 0" fill="none" stroke="#7a7a76" stroke-width="2" stroke-linecap="round"/>
+    <line x1="12" y1="16.5" x2="16.6" y2="11.9" stroke="#7a7a76" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="12" cy="16.5" r="1.6" fill="#7a7a76"/>
+  </symbol>
   <symbol id="icon-sunrise" viewBox="0 0 24 24">
     <circle cx="12" cy="13" r="4" fill="#c98a12"/>
     <g stroke="#c98a12" stroke-width="1.6" stroke-linecap="round">

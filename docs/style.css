@@ -82,10 +82,11 @@ body {
 /* Which day the top row is showing: Danes / Jutri / weekday name. */
 .header__viewday { color: var(--grey-label); }
 .header__datetime { display: flex; align-items: center; gap: 4px; }
-.header__right { display: flex; align-items: center; }
+/* Same size as the day-date panel so the two header panels read as a pair. */
+.header__right { display: flex; align-items: center; font-size: 15px; }
 .header__sun-group { display: flex; align-items: center; gap: 6px; }
 .header__sun { display: flex; align-items: center; gap: 2px; }
-.header__sun svg { width: 14px; height: 14px; }
+.header__sun svg { width: 17px; height: 17px; }
 
 /* Rows */
 /* No scroll-snap: on iOS Safari it reverts a programmatic scrollLeft, which
@@ -166,9 +167,11 @@ body {
   position: absolute;
   left: 1px;
   right: 1px;
-  bottom: 78px;          /* exactly the humidity line's slot */
-  font-size: 9px;
-  line-height: 11px;
+  bottom: 78px;          /* anchored on the humidity line, grows upward */
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 700;
+  white-space: normal;   /* two lines; the slot above is free once the badge hides */
   color: var(--grey-muted);
   pointer-events: none;
 }

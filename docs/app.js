@@ -201,7 +201,8 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
   if (showHint) {
     const hint = document.createElement('div');
     hint.className = 'cell__hint cell__hint--hidden';
-    hint.textContent = 'Ponovni klik za danes';
+    // Explicit break so the two lines split where they read best.
+    hint.append('Ponovni klik za', document.createElement('br'), 'današnjo napoved');
     cell.appendChild(hint);
   }
 
@@ -224,11 +225,18 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
 }
 
 function renderHeader(forecast) {
-  // Day and date are set by updateViewDay(), which follows the selected day.
   // The live clock was dropped: the header is two panels now, and a ticking
   // time is what forced a per-second timer to be re-armed on every render.
   document.getElementById('header-sunrise').textContent = forecast.sun.sunrise;
   document.getElementById('header-sunset').textContent = forecast.sun.sunset;
+
+  // Day and date too, not just the sun times. Both are derivable from the
+  // forecast alone, and leaving them to renderTopRow meant the first line was
+  // still half-empty when the day row appeared one paint later.
+  const days = forecast.days || [];
+  const tIdx = todayIndex(days);
+  const todayDate = tIdx >= 0 ? days[tIdx].date : (days.length ? days[0].date : null);
+  updateViewDay(selectedDate || todayDate);
 }
 
 
@@ -553,16 +561,32 @@ async function loadAndRender() {
     now = nowFromForecastFallback(forecast);
   }
 
+  // Painted in the order the reader needs them, yielding a frame between each
+  // so the browser shows a finished header before the rows exist rather than a
+  // half-built page. Panels come last: the radar GIF alone is ~450 KB and used
+  // to hold up everything behind it.
   renderHeader(forecast);
   renderStaleBanner(forecast);
-  // Radar and satellite are live loops: refresh them alongside the data, or a
-  // page left open keeps showing the animation it loaded hours ago.
-  renderPanels();
+  await paint();
   // A null fallback means no block brackets the current time either; render the
   // forecast rows without a zdaj cell rather than inventing a reading.
   renderTopRow(forecast, now);
+  await paint();
   renderWeekRow(forecast, now);
+  await paint();
   if (now) renderHailPill(now);
+  renderLinks();
+  await paint();
+  // Radar and satellite are live loops: refresh them with the data, or a page
+  // left open keeps showing the animation it loaded hours ago.
+  renderPanels();
+}
+
+// Lets the browser paint what has been built so far before the next step.
+// Deliberately NOT requestAnimationFrame: rAF does not fire in a hidden or
+// background tab, so a page opened in one would stall here and never render.
+function paint() {
+  return new Promise((r) => setTimeout(r, 0));
 }
 
 async function init() {
@@ -575,8 +599,7 @@ async function init() {
   const iconsHolder = document.getElementById('icons-holder');
   iconsHolder.innerHTML = iconsText;
 
-  renderLinks();
-  await loadAndRender();  // renders the panels too
+  await loadAndRender();  // header -> rows -> buttons -> panels, in that order
 
   // Mobile browsers suspend timers aggressively; pageshow/focus cover the
   // wake-up paths visibilitychange misses, so a reopened page can't keep

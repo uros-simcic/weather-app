@@ -5,3 +5,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-07-26,temperature_2m,5,1.918,6.54,3.3,3.24
 2026-07-26,relative_humidity_2m,5,12.342,25.36,5.0,20.36
 2026-07-26,wind_speed_10m,5,1.448,2.85,3.0,-0.15
+2026-07-27,temperature_2m,5,1.372,4.12,7.4,-3.28
+2026-07-27,relative_humidity_2m,5,4.994,15.43,28.0,-12.57
+2026-07-27,wind_speed_10m,5,1.18,1.38,3.0,-1.62

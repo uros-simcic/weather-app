@@ -107,6 +107,7 @@ body {
    items can't shrink below min-content, so week cells silently grew wider
    than today cells at 92px — the rows only match when the basis fits both. */
 .cell {
+  position: relative;  /* anchor for the absolutely-placed tap hint */
   flex: 0 0 106px;
   height: 248px;
   padding: 12px 4px 12px;
@@ -157,14 +158,25 @@ body {
 
 /* Tap hint on a selected day. Always in the layout, only toggled visible, so
    the row does not jump when it appears and disappears. */
+/* Floated out of the flex flow entirely. As a normal child it added a 12px row
+   to the selected cell only, which squeezed the fixed-height column and pushed
+   the hint down onto the humidity badge. Absolute keeps every cell identical
+   and lets the hint sit clear of the humidity line. */
 .cell__hint {
-  font-size: 10px;
-  line-height: 12px;
-  height: 12px;
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 78px;          /* exactly the humidity line's slot */
+  font-size: 9px;
+  line-height: 11px;
   color: var(--grey-muted);
-  flex-shrink: 0;
+  pointer-events: none;
 }
 .cell__hint--hidden { visibility: hidden; }
+/* While the hint shows it borrows the humidity slot rather than sitting on top
+   of it — there are only 9px between the temperature and the badge, too little
+   for its own line, and giving it one would change this cell's height alone. */
+.cell--hinting .badge { visibility: hidden; }
 .badge--amber { color: var(--amber-text); }
 .badge--red { color: var(--red); }
 .badge--neutral { color: var(--grey-label); }

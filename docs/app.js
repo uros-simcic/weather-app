@@ -5,7 +5,7 @@ const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 // Bump when icons.svg changes so cached sprites are replaced.
-const ICONS_VERSION = '4';
+const ICONS_VERSION = '5';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -305,10 +305,15 @@ function updateViewDay(dateStr) {
 let hintTimer = null;
 function flashHint() {
   clearTimeout(hintTimer);
-  const el = document.querySelector('#week-row .cell--selected .cell__hint');
+  const cell = document.querySelector('#week-row .cell--selected');
+  const el = cell && cell.querySelector('.cell__hint');
   if (!el) return;
   el.classList.remove('cell__hint--hidden');
-  hintTimer = setTimeout(() => el.classList.add('cell__hint--hidden'), 2000);
+  cell.classList.add('cell--hinting');   // frees the humidity slot for it
+  hintTimer = setTimeout(() => {
+    el.classList.add('cell__hint--hidden');
+    cell.classList.remove('cell--hinting');
+  }, 2000);
 }
 
 function renderTopRow(forecast, now) {

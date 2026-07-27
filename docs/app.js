@@ -15,6 +15,8 @@ let selectedDate = null;
 // from moving the row under the user.
 let lastScrolledDate = null;
 let preservedScrollLeft = 0;
+// The staggered top-down reveal is for the first paint only — see paint().
+let firstRender = true;
 
 function iconRef(name, drops) {
   let resolved = ICON_WHITELIST.has(name) ? name : 'cloud';
@@ -603,13 +605,32 @@ async function loadAndRender() {
   // Radar and satellite are live loops: refresh them with the data, or a page
   // left open keeps showing the animation it loaded hours ago.
   renderPanels();
+  firstRender = false;
 }
 
-// Lets the browser paint what has been built so far before the next step.
-// Deliberately NOT requestAnimationFrame: rAF does not fire in a hidden or
-// background tab, so a page opened in one would stall here and never render.
+// Gap between sections on the very first render, in ms. setTimeout(0) alone
+// only yielded the task queue — it does not guarantee the browser commits a
+// frame, and all five sections finished inside ~30 ms anyway, so they landed
+// together and the page still appeared all at once. At 80 ms each section is
+// clearly seen arriving on its own and the whole page is up in about a third
+// of a second. Four gaps, so: raise it to slow the cascade, lower it to speed
+// it up, set it to 0 to go back to everything at once.
+const STEP_MS = 80;
+
+// Waits for the browser to actually paint what has been built so far.
+// rAF fires only after the previous step is committed to the screen, but it
+// does NOT fire in a hidden or background tab — so it is raced against a plain
+// timeout, or a page opened in a background tab would stall here forever.
+// After the first render the stagger is dropped: a 30-min background refresh
+// should replace the page in one frame, not visibly rebuild itself line by line.
 function paint() {
-  return new Promise((r) => setTimeout(r, 0));
+  if (!firstRender) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; resolve(); } };
+    requestAnimationFrame(() => setTimeout(finish, STEP_MS));
+    setTimeout(finish, STEP_MS + 250);  // hidden-tab escape hatch
+  });
 }
 
 async function init() {

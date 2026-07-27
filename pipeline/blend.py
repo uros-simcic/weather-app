@@ -383,8 +383,12 @@ def build_days(data, blended):
             "rh_pm": round(blended["relative_humidity_2m"][rh_pm_key]) if rh_pm_key in blended["relative_humidity_2m"] else None,
             "uv_max": round(max((v for t, v in blended["uv_index"].items() if t.startswith(d)), default=0)),
             "wind_kmh": round(wind_kmh), "wind_dir": round(wind_dir),
+            # Drops from the SAME rounded figure that gets published, or the two
+            # disagree at every threshold: 0.96 mm publishes as "1.0 mm" while
+            # daily_drops(0.96) returns 0, so the day reads as a millimetre of
+            # rain with no drop against it. The block path already rounds first.
             "precip_mm": round(precip_sum, 1),
-            "drops": daily_drops(precip_sum),
+            "drops": daily_drops(round(precip_sum, 1)),
         }
         day_pop = display_pop(pops_day)
         if day_pop is not None:

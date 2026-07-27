@@ -64,6 +64,37 @@ def display_pop(values):
     return min(MAX_POP, round(raw / 5) * 5)
 
 
+# A member is counted as forecasting rain at or above this hourly amount.
+POP_WET_MM = 0.1
+
+
+def combine_pop(stated, precip_members):
+    """Probability of precipitation from ALL members, not just the two that
+    publish one.
+
+    Only ECMWF and GFS supply precipitation_probability; the four
+    high-resolution regional models (ICON-D2, ICON-2I, ICON-EU, AROME) return
+    null. Averaging just the two meant that on a convective summer day — when
+    the regional models are the ones actually resolving the terrain — the
+    figure came from the two coarse global models alone, and both saying ~100%
+    produced a certain-looking forecast that then did not happen.
+
+    Every member does supply an hourly amount, so the share of members
+    forecasting measurable rain is a genuine ensemble probability. Averaging
+    that with the stated probability keeps the calibrated signal while letting
+    the regional models pull it down when they disagree.
+    """
+    values = list(stated.values())
+    said = sum(values) / len(values) if values else None
+    if not precip_members:
+        return said if said is not None else 0.0
+    wet = sum(1 for v in precip_members.values() if v >= POP_WET_MM)
+    agreement = 100.0 * wet / len(precip_members)
+    if said is None:
+        return agreement
+    return (said + agreement) / 2
+
+
 def worst_icon(icons):
     icons = [i for i in icons if i]
     if not icons:
@@ -218,6 +249,14 @@ def blend_hourly(data, now_dt, models, decisions):
                 continue
             if var == "wind_direction_10m":
                 out[var][t] = circular_mean_deg(list(member_values.values()))
+                continue
+            if var == "precipitation_probability":
+                precip_members = {}
+                for model_name in OPEN_METEO_MODELS:
+                    s = hourly.get(f"precipitation_{model_name}")
+                    if s is not None and i < len(s) and s[i] is not None:
+                        precip_members[model_name] = s[i]
+                out[var][t] = combine_pop(member_values, precip_members)
                 continue
 
             method = chosen_method(var, bucket, decisions) if var in TRAIN_VARS else "equal_weight_mean"

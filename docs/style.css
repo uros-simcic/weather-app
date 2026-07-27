@@ -224,9 +224,13 @@ body {
 }
 .stale-banner[hidden] { display: none; }
 
-.panel__fallback {
+/* `.panel a { line-height: 0 }` (set so the image leaves no descender gap) is
+   more specific than a bare .panel__fallback and collapsed this link's line box
+   to zero height, so qualify the selector to win it back. */
+.panel a.panel__fallback {
   display: block;
   padding: 24px 12px;
+  line-height: 1.4;
   text-align: center;
   color: var(--grey-label);
   text-decoration: underline;

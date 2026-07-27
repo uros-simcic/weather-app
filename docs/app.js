@@ -354,7 +354,12 @@ function renderTopRow(forecast, now) {
         scrollRowTo(row, firstCell, startCell);
         lastScrolledDate = selectedDate;
       } else {
-        row.scrollLeft = preservedScrollLeft;
+        // Same two-phase assert scrollRowTo uses: iOS Safari drops a scrollLeft
+        // set immediately after the cells are inserted, which silently undid the
+        // restore and left the row back at the 23-02 cell.
+        const restore = () => { row.scrollLeft = preservedScrollLeft; };
+        restore();
+        requestAnimationFrame(restore);
       }
       updateViewDay(selectedDate);
       return;
@@ -462,7 +467,13 @@ function renderLinks() {
 }
 
 function panelFallback(panel, href, label) {
-  panel.innerHTML = '';
+  // Hide the media element rather than wiping the panel. `panel.innerHTML = ''`
+  // deleted the very <img>/<video> that renderPanels() looks for, so a single
+  // transient ARSO error locked the panel into this link for the life of the
+  // page — the next refresh found nothing to retry with and skipped it.
+  const media = panel.querySelector('img, video');
+  if (media) media.hidden = true;
+  if (panel.querySelector('.panel__fallback')) return;  // already showing
   const a = document.createElement('a');
   a.href = href;
   a.target = '_blank';
@@ -472,13 +483,25 @@ function panelFallback(panel, href, label) {
   panel.appendChild(a);
 }
 
+// Undo a previous fallback so this attempt starts from a clean panel: drop the
+// link and show the media element again. If the source is still down the error
+// handler simply puts the link back.
+function resetPanel(panel) {
+  if (!panel) return null;
+  const old = panel.querySelector('.panel__fallback');
+  if (old) old.remove();
+  const media = panel.querySelector('img, video');
+  if (media) media.hidden = false;
+  return media;
+}
+
 function renderPanels() {
   // Cache-bust on every call: these are live nowcast loops, and without this a
   // page left open all day kept showing the animation it loaded at startup.
   const bust = '?t=' + Date.now();
 
   const radarPanel = document.getElementById('radar-panel');
-  const radarImg = radarPanel && radarPanel.querySelector('img');
+  const radarImg = resetPanel(radarPanel);
   if (radarImg) {
     radarImg.onerror = () => panelFallback(
       radarPanel,
@@ -487,7 +510,7 @@ function renderPanels() {
   }
 
   const satPanel = document.getElementById('satellite-panel');
-  const satVideo = satPanel && satPanel.querySelector('video');
+  const satVideo = resetPanel(satPanel);
   if (satVideo) {
     // Set src on the media element itself rather than on a <source> child: a
     // media element with a <source> never fires `error` on itself — only the

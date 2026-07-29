@@ -1,14 +1,13 @@
 {
-  "measured_at": "2026-07-29T06:44:00",
-  "t": 18.4,
-  "rh": 85.5,
-  "wind_kmh": 3.5,
-  "wind_dir": 69.0,
+  "measured_at": "2026-07-29T09:40:00",
+  "t": 27.2,
+  "rh": 52.0,
+  "wind_kmh": 3.0,
+  "wind_dir": 212.0,
   "icon": "sun",
-  "uv": 0,
+  "uv": 2,
   "source": "stations",
   "stations_used": [
-    "BILJE",
     "NOVA_GORICA"
   ],
   "hail": {

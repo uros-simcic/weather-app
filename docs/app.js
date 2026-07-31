@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=9';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=10';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -8,7 +8,7 @@ const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '9';
+const ICONS_VERSION = '10';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -345,6 +345,25 @@ function flashHint() {
   }, 2000);
 }
 
+// The blocks that actually fall on a given day.
+//
+// A day's stored list opens with the 23-02 block that began at 23:00 the
+// evening BEFORE it (spec §7.2), so tapping SOB opened on Friday night — and
+// the row was only readable because it auto-scrolled past it, which cannot
+// work on a window wide enough that the row barely scrolls at all.
+// Selecting by start date instead gives the day as anyone means it: 02-05
+// through 20-23, then the 23-02 that begins that evening, which is filed as
+// the next day's first block.
+function dayOwnBlocks(days, idx) {
+  const day = days[idx];
+  if (!day || !day.blocks) return [];
+  const own = day.blocks.filter((b) => b.start.slice(0, 10) === day.date);
+  const next = days[idx + 1];
+  const tail = ((next && next.blocks) || []).filter((b) => b.start.slice(0, 10) === day.date);
+  return own.concat(tail);
+}
+
+
 function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
   // Captured before the rebuild so a same-day re-render can restore the user's
@@ -355,14 +374,13 @@ function renderTopRow(forecast, now) {
   const tIdx = todayIndex(days);
   const todayDate = tIdx >= 0 ? days[tIdx].date : (days.length ? days[0].date : null);
 
-  // A future day is selected: show all its blocks, no zdaj. Open scrolled to
-  // the 08-11 block so the morning leads (the pre-dawn blocks are legitimately
-  // sparse — uv 0, humidity hidden < 22°C), but scrolling left still reveals them.
+  // A future day is selected: show that day and no zdaj.
   if (selectedDate && selectedDate !== todayDate) {
-    const day = days.find((d) => d.date === selectedDate);
+    const dIdx = days.findIndex((d) => d.date === selectedDate);
+    const day = dIdx >= 0 ? days[dIdx] : null;
     if (day && day.blocks) {
       let firstCell = null, startCell = null;
-      for (const block of day.blocks) {
+      for (const block of dayOwnBlocks(days, dIdx)) {
         const cell = blockCell(block);
         if (!firstCell) firstCell = cell;
         if (block.label === '08-11') startCell = cell;

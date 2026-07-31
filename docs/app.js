@@ -18,6 +18,10 @@ let selectedDate = null;
 // from moving the row under the user.
 let lastScrolledDate = null;
 let preservedScrollLeft = 0;
+// The today row's block identities as last rendered, so a refresh can tell a
+// same-content rebuild (restore the scroll) from one where a block has expired
+// and everything shifted left by a cell (start from the left again).
+let lastTodayKey = '';
 // The staggered top-down reveal is for the first paint only — see paint().
 let firstRender = true;
 
@@ -87,17 +91,25 @@ function makeHumidityBadge(t, rh) {
   const el = document.createElement('div');
   // rh is null whenever every station is stale (fetch_obs writes null rather
   // than guessing); without this check the badge rendered the string "null %".
-  if (t == null || rh == null || t < 22) {
+  if (t == null || rh == null) {
+    el.className = 'badge badge--spacer';
+    return el;
+  }
+  // The station median can be fractional (47 and 48 -> 47.5); every other
+  // refresh showed an integer, so round for a consistent badge.
+  const shown = Math.round(rh);
+  // Thresholds compare the rounded numbers, i.e. the ones actually on screen —
+  // same rule as tempClass. Testing raw rh printed "60 %" in the neutral colour
+  // whenever the median was 59.5 to 59.9, which reads as a plain mistake.
+  const shownT = Math.round(t);
+  if (shownT < 22) {
     el.className = 'badge badge--spacer';
     return el;
   }
   let cls = 'badge--neutral';
-  if (rh >= 60 && t >= 26) cls = 'badge--red';
-  else if (rh >= 60 && t >= 22) cls = 'badge--amber';
+  if (shown >= 60 && shownT >= 26) cls = 'badge--red';
+  else if (shown >= 60 && shownT >= 22) cls = 'badge--amber';
   el.className = 'badge ' + cls;
-  // The station median can be fractional (47 and 48 -> 47.5); every other
-  // refresh showed an integer, so round for a consistent badge.
-  const shown = Math.round(rh);
   // A hygrometer glyph disambiguates this percentage from the rain probability
   // shown under the icon — otherwise the two read identically.
   const dial = document.createElementNS(SVGNS, 'svg');
@@ -411,12 +423,30 @@ function renderTopRow(forecast, now) {
   // repeated up to 8 labels with nothing on the cell to tell the two apart.
   // Counted separately from row.children: zdaj is already in the row above.
   let shown = 0;
+  const rendered = [];
   for (const block of candidates) {
     if (new Date(block.end).getTime() <= nowTs) continue;
     row.appendChild(blockCell(block));
+    rendered.push(block.start);
     if (++shown === BLOCKS_PER_DAY) break;
   }
-  row.scrollLeft = 0;
+
+  // Keep the user's reading position across a background refresh, the same way
+  // the selected-day branch above does. Compared by block identity rather than
+  // by how many there are: the row holds eight of them at every hour now, so a
+  // count would call it unchanged across a 3h boundary and restore the scroll
+  // onto a row that had silently shifted by one cell.
+  const key = rendered.join(',');
+  if (key && key === lastTodayKey) {
+    // Two-phase assert, as in scrollRowTo: iOS Safari drops a scrollLeft set
+    // immediately after the cells are inserted.
+    const restore = () => { row.scrollLeft = preservedScrollLeft; };
+    restore();
+    requestAnimationFrame(restore);
+  } else {
+    row.scrollLeft = 0;
+  }
+  lastTodayKey = key;
   lastScrolledDate = null;  // so re-selecting a day scrolls to 08-11 again
   updateViewDay(todayDate);
 }

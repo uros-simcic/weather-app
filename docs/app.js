@@ -4,6 +4,9 @@ const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow',
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
+// Eight 3h blocks per day (23-02 … 20-23), so eight is also one full turn of
+// the labels — the most the top row can show without repeating one.
+const BLOCKS_PER_DAY = 8;
 // Bump when icons.svg changes so cached sprites are replaced.
 const ICONS_VERSION = '5';
 
@@ -398,9 +401,16 @@ function renderTopRow(forecast, now) {
     ...((todayDay && todayDay.blocks) || forecast.blocks || []),
     ...((nextDay && nextDay.blocks) || []),
   ];
+  // Stop after a full day's worth. The candidates run back to back, so the
+  // unexpired ones start at the block covering now and the first 8 cover the
+  // next 24h — every label exactly once. Taking the whole of tomorrow as well
+  // repeated up to 8 labels with nothing on the cell to tell the two apart.
+  // Counted separately from row.children: zdaj is already in the row above.
+  let shown = 0;
   for (const block of candidates) {
     if (new Date(block.end).getTime() <= nowTs) continue;
     row.appendChild(blockCell(block));
+    if (++shown === BLOCKS_PER_DAY) break;
   }
   row.scrollLeft = 0;
   lastScrolledDate = null;  // so re-selecting a day scrolls to 08-11 again

@@ -1,4 +1,6 @@
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js';
+// ?v= must match the modulepreload href in index.html exactly, or the browser
+// preloads one URL and then imports another. Bump it with the others there.
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=6';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -7,8 +9,9 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 // Eight 3h blocks per day (23-02 … 20-23), so eight is also one full turn of
 // the labels — the most the top row can show without repeating one.
 const BLOCKS_PER_DAY = 8;
-// Bump when icons.svg changes so cached sprites are replaced.
-const ICONS_VERSION = '5';
+// One number for every cached asset — bump this and the three ?v= in
+// index.html together, so a deploy can never serve new markup with old code.
+const ICONS_VERSION = '6';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -672,11 +675,13 @@ async function loadAndRender() {
 // Gap between sections on the very first render, in ms. setTimeout(0) alone
 // only yielded the task queue — it does not guarantee the browser commits a
 // frame, and all five sections finished inside ~30 ms anyway, so they landed
-// together and the page still appeared all at once. At 80 ms each section is
-// clearly seen arriving on its own and the whole page is up in about a third
-// of a second. Four gaps, so: raise it to slow the cascade, lower it to speed
-// it up, set it to 0 to go back to everything at once.
-const STEP_MS = 80;
+// together and the page still appeared all at once.
+// 80 ms was the first attempt and still read as one flash: four gaps is 0.32 s
+// in total, which is about the point where separate events start being seen as
+// one. At 200 ms the whole cascade takes 0.8 s and each section is unmistakably
+// its own arrival. Four gaps, so: raise it to slow the cascade, lower it to
+// speed it up, set it to 0 to go back to everything at once.
+const STEP_MS = 200;
 
 // Waits for the browser to actually paint what has been built so far.
 // rAF fires only after the previous step is committed to the screen, but it

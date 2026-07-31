@@ -8,7 +8,20 @@
 <link rel="icon" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Brda – vreme</title>
-<link rel="stylesheet" href="style.css">
+<!-- ?v= on every asset the browser would otherwise hold on to. Pages serves
+     these with cache-control: max-age=600 and the JSON files already carry
+     their own cache-buster, so without this the data on screen was fresh while
+     the code rendering it was whatever the browser had cached - a deploy could
+     look live and still be running the previous version.
+     BUMP ALL FOUR TOGETHER on any change to app.js, config.js, style.css or
+     icons.svg: the three below and ICONS_VERSION at the top of app.js. -->
+<link rel="stylesheet" href="style.css?v=6">
+<!-- config.js is imported by app.js, so the browser cannot discover it until
+     app.js has downloaded and parsed - a third serial hop before the header can
+     be drawn, for a file nothing needs until the last section renders.
+     The href must match app.js's import specifier exactly or the preload is
+     fetched and then ignored. -->
+<link rel="modulepreload" href="config.js?v=6">
 </head>
 <body>
 <div id="icons-holder"></div>
@@ -57,6 +70,6 @@
   </footer>
 </div>
 
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=6"></script>
 </body>
 </html>

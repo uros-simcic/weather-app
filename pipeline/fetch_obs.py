@@ -25,6 +25,7 @@ from config import (
     LAT, LON, OPEN_METEO_URL, TIMEZONE,
 )
 from features import wmo_to_icon
+from safe_write import write_json
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
@@ -287,8 +288,7 @@ def write_now_json(now_dt, zdaj, stations_used, hourly=None):
         "hail": {"status": "none"},  # fetch_hail.py updates this key afterward
     }
     os.makedirs(SITE_DIR, exist_ok=True)
-    with open(NOW_PATH, "w") as f:
-        json.dump(payload, f, indent=2)
+    write_json(NOW_PATH, payload, indent=2)
 
 
 def main():

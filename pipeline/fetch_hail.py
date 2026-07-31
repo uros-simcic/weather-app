@@ -16,6 +16,7 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import HAIL_INCA_BBOX, HAIL_INCA_URL_TEMPLATE, LAT, LON, TIMEZONE
+from safe_write import write_json
 
 SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
 NOW_PATH = os.path.join(SITE_DIR, "now.json")
@@ -86,8 +87,7 @@ def update_now_json(status):
         payload = {}
     payload["hail"] = {"status": status}
     os.makedirs(SITE_DIR, exist_ok=True)
-    with open(NOW_PATH, "w") as f:
-        json.dump(payload, f, indent=2)
+    write_json(NOW_PATH, payload, indent=2)
 
 
 def main():

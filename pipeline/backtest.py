@@ -15,6 +15,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(__file__))
 from config import OPEN_METEO_MODELS, TRAINING_HISTORY_START
 from features import TRAIN_VARS, build_training_rows, lead_bucket
+from safe_write import write_json
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 REPORT_PATH = os.path.join(DATA_DIR, "backtest_report.md")
@@ -196,8 +197,7 @@ def write_report(results):
 
 def write_decisions(decisions):
     os.makedirs(DATA_DIR, exist_ok=True)
-    with open(DECISIONS_PATH, "w") as f:
-        json.dump(decisions, f, indent=2)
+    write_json(DECISIONS_PATH, decisions, indent=2)
 
 
 def main():

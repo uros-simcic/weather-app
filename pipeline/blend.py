@@ -18,6 +18,7 @@ from config import (
     OPEN_METEO_MODELS, OPEN_METEO_URL, TIMEZONE,
 )
 from features import TRAIN_VARS, lead_bucket, wmo_to_icon
+from safe_write import write_json
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 MODELS_DIR = os.path.join(DATA_DIR, "models")
@@ -508,8 +509,6 @@ def main():
     decisions = load_decisions()
     blended = blend_hourly(data, now_dt, models, decisions)
 
-    log_published(blended, now_dt)
-
     days = build_days(data, blended, decisions)
     forecast = {
         "generated_at": datetime.now(tz).isoformat(),
@@ -523,9 +522,15 @@ def main():
     }
 
     os.makedirs(SITE_DIR, exist_ok=True)
-    with open(FORECAST_PATH, "w") as f:
-        json.dump(forecast, f, indent=2, ensure_ascii=False)
+    write_json(FORECAST_PATH, forecast, indent=2, ensure_ascii=False)
     print(f"blend: wrote {FORECAST_PATH}")
+
+    # Only now, after the file it describes is actually on disk. Logged before
+    # the write, a run that died in between left log_published.csv claiming ~48h
+    # of values the page never showed — and forecast.yml commits with
+    # `if: always()`, so those rows were pushed and then scored by verify.py as
+    # if a reader had seen them, with nothing to tell them from real ones.
+    log_published(blended, now_dt)
 
 
 if __name__ == "__main__":

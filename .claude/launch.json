@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    {
+      "name": "weather-app",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 -m http.server ${PORT:-8765} --directory docs"],
+      "port": 8765
+    }
+  ]
+}

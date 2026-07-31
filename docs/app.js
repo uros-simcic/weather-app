@@ -232,8 +232,12 @@ function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir,
 function renderHeader(forecast) {
   // The live clock was dropped: the header is two panels now, and a ticking
   // time is what forced a per-second timer to be re-armed on every render.
-  document.getElementById('header-sunrise').textContent = forecast.sun.sunrise;
-  document.getElementById('header-sunset').textContent = forecast.sun.sunset;
+  // Guarded like everything else downstream: this is now the first thing drawn
+  // after forecast.json lands, so a file written without sun times would throw
+  // here and leave the whole page on the empty skeleton.
+  const sun = forecast.sun || {};
+  document.getElementById('header-sunrise').textContent = sun.sunrise || '--:--';
+  document.getElementById('header-sunset').textContent = sun.sunset || '--:--';
 
   // Day and date too, not just the sun times. Both are derivable from the
   // forecast alone, and leaving them to renderTopRow meant the first line was
@@ -571,18 +575,42 @@ function nowFromForecastFallback(forecast) {
   };
 }
 
+// Settles to {value} or {error} instead of rejecting, so a fetch started now
+// and read several paints later can never become an unhandled rejection —
+// including on the early return below, which leaves now.json in flight.
+function fetchJson(name) {
+  return fetch(name + '?t=' + Date.now())
+    .then((r) => r.json())
+    .then((value) => ({ value }), (error) => ({ error }));
+}
+
 async function loadAndRender() {
-  let forecast;
-  try {
-    forecast = await fetch('forecast.json?t=' + Date.now()).then((r) => r.json());
-  } catch (e) {
-    console.error('forecast.json fetch/parse failed, keeping previous render', e);
+  // Both requests go out together. They used to run one after the other, and
+  // since the header is drawn only after the second one lands, the first line
+  // sat behind a round-trip it has no use for — nothing in it reads now.json.
+  const forecastPromise = fetchJson('forecast.json');
+  const nowPromise = fetchJson('now.json');
+
+  const forecastResult = await forecastPromise;
+  if (forecastResult.error) {
+    console.error('forecast.json fetch/parse failed, keeping previous render', forecastResult.error);
     return;
   }
+  const forecast = forecastResult.value;
+
+  // Painted in the order the reader needs them, yielding a frame between each
+  // so the browser shows a finished header before the rows exist rather than a
+  // half-built page. Panels come last: the radar GIF alone is ~450 KB and used
+  // to hold up everything behind it.
+  renderHeader(forecast);
+  renderStaleBanner(forecast);
+  await paint();
 
   let now;
   try {
-    now = await fetch('now.json?t=' + Date.now()).then((r) => r.json());
+    const nowResult = await nowPromise;
+    if (nowResult.error) throw nowResult.error;
+    now = nowResult.value;
     if (now == null || typeof now.t !== 'number') throw new Error('now.json missing expected fields');
     // measured_at is naive Ljubljana local; compare against the same wall clock.
     // Without this an outage froze now.json and hours-old readings kept being
@@ -596,13 +624,6 @@ async function loadAndRender() {
     now = nowFromForecastFallback(forecast);
   }
 
-  // Painted in the order the reader needs them, yielding a frame between each
-  // so the browser shows a finished header before the rows exist rather than a
-  // half-built page. Panels come last: the radar GIF alone is ~450 KB and used
-  // to hold up everything behind it.
-  renderHeader(forecast);
-  renderStaleBanner(forecast);
-  await paint();
   // A null fallback means no block brackets the current time either; render the
   // forecast rows without a zdaj cell rather than inventing a reading.
   renderTopRow(forecast, now);
@@ -648,10 +669,16 @@ async function init() {
   // Versioned, not time-stamped. A per-load cache-buster did guarantee fresh
   // icons but re-downloaded the sprite on every visit, which is part of why
   // first paint felt slow. Bump ICONS_VERSION whenever icons.svg changes.
-  const iconsResp = await fetch('icons.svg?v=' + ICONS_VERSION);
-  const iconsText = await iconsResp.text();
-  const iconsHolder = document.getElementById('icons-holder');
-  iconsHolder.innerHTML = iconsText;
+  // Deliberately not awaited: a <use> reference resolves whenever the sprite
+  // arrives, so the glyphs fill themselves in and nothing has to wait. Their
+  // box is pinned in CSS, so none of them move when that happens. Awaiting it
+  // put a whole round-trip in front of the header for no benefit.
+  // Its own catch as well: this used to be a bare await in init(), so a sprite
+  // that 404'd rejected init() and left the page permanently blank.
+  fetch('icons.svg?v=' + ICONS_VERSION)
+    .then((r) => r.text())
+    .then((text) => { document.getElementById('icons-holder').innerHTML = text; })
+    .catch((e) => console.error('icons.svg failed to load, icons will be missing', e));
 
   await loadAndRender();  // header -> rows -> buttons -> panels, in that order
 

@@ -190,6 +190,45 @@ def weighted_mean(member_values, maes, power):
     return num / den
 
 
+def blended_daily_extreme(data, var, d, agg, decisions):
+    """A day's min or max taken per member first, then blended — rather than
+    read off the blended curve.
+
+    An average never reaches as far as the things it averages: blend six models
+    hour by hour and the resulting curve peaks below where the members' own
+    peaks average out, and bottoms out above their own troughs. Reading the
+    extreme off that curve therefore published a day narrower than the ensemble
+    actually said. Measured against the live response: 0.05-0.90 °C on the
+    overnight minimum, and 0.5-3.2 km/h on wind — enough to change the printed
+    wind figure on six days out of eight, always downwards, in a number the day
+    row presents as the windiest it will get.
+
+    Members are read from each model's own hourly series rather than from the
+    API's daily aggregate. Open-Meteo nulls a model's daily value on its final,
+    partial day while still publishing that day's hours, so the two are taken
+    over different member sets on exactly the far-out days this matters most —
+    and the correction then comes out backwards. Going through the hourly
+    series keeps the member set identical to the blend's own.
+
+    Weighted by the same per-member skill scores the hourly path falls back to;
+    variables the backtest never scored have no MAEs and fall to a plain mean.
+    """
+    hourly = data.get("hourly", {})
+    times = hourly.get("time", [])
+    per_member = {}
+    for model_name in OPEN_METEO_MODELS:
+        series = hourly.get(f"{var}_{model_name}")
+        if series is None:
+            continue
+        vals = [series[i] for i, t in enumerate(times)
+                if t.startswith(d) and i < len(series) and series[i] is not None]
+        if vals:
+            per_member[model_name] = agg(vals)
+    if not per_member:
+        return None
+    return weighted_mean(per_member, decisions.get(f"{var}|member_mae") or {}, 2)
+
+
 def combine_weather_codes(member_values):
     """WMO codes are categories, not quantities — averaging them invents weather.
     Two members both forecasting rain (63 and 81) average to 72, which is a snow
@@ -341,7 +380,7 @@ def build_blocks(blended, target_date):
     return blocks
 
 
-def build_days(data, blended):
+def build_days(data, blended, decisions):
     daily = data.get("daily", {})
     dates = daily.get("time", [])
     days = []
@@ -355,7 +394,7 @@ def build_days(data, blended):
         # Icon / rain% / precip summarise the DAYTIME (06:00-20:59) only. Using
         # all 24h let a pre-dawn shower that's gone by sunrise flip the whole day
         # to "rain" at a high pop, contradicting an otherwise-sunny hourly view.
-        # Wind stays whole-day (its max is a safety figure, not a "how's the day").
+        # Wind stays whole-day: it answers "windiest it gets", not "how's the day".
         def daytime(series):
             return [v for t, v in series.items()
                     if t.startswith(d) and 6 <= int(t[11:13]) < 21]
@@ -367,21 +406,38 @@ def build_days(data, blended):
         winds_today = [(blended["wind_speed_10m"].get(t), blended["wind_direction_10m"].get(t))
                         for t in blended["wind_speed_10m"] if t.startswith(d)]
         winds_today = [(s, dd) for s, dd in winds_today if s is not None]
-        wind_kmh, wind_dir = (max(winds_today, key=lambda x: x[0]) if winds_today else (0, 0))
+        wind_peak, wind_dir = (max(winds_today, key=lambda x: x[0]) if winds_today else (0, 0))
 
         # Daily min/max over the whole calendar day, not fixed 10:00/15:00
         # readings: every reference forecast (ARSO, meteo.it) publishes min/max,
         # and a 10:00 value read ~10°C warmer than ARSO's overnight minimum,
         # making the two impossible to compare.
         temps_all = [v for t, v in blended["temperature_2m"].items() if t.startswith(d)]
+        uv_all = [v for t, v in blended["uv_index"].items() if t.startswith(d)]
+
+        # Blended per member (see blended_daily_extreme), then held to the curve
+        # the blocks are drawn from. The two agree on the ensemble mean, but the
+        # nearer days blend through LightGBM, which is not an average of its
+        # members and so carries no guarantee of sitting inside them — without
+        # this a day could print a peak below one of its own blocks.
+        t_am = blended_daily_extreme(data, "temperature_2m", d, min, decisions)
+        t_pm = blended_daily_extreme(data, "temperature_2m", d, max, decisions)
+        uv_max = blended_daily_extreme(data, "uv_index", d, max, decisions)
+        wind_kmh = blended_daily_extreme(data, "wind_speed_10m", d, max, decisions)
+        if temps_all:
+            t_am = min(t_am, min(temps_all)) if t_am is not None else min(temps_all)
+            t_pm = max(t_pm, max(temps_all)) if t_pm is not None else max(temps_all)
+        if uv_all:
+            uv_max = max(uv_max, max(uv_all)) if uv_max is not None else max(uv_all)
+        wind_kmh = max(wind_kmh, wind_peak) if wind_kmh is not None else wind_peak
 
         day = {
             "date": d, "name": day_names[weekday],
             "icon": worst_icon([wmo_to_icon(c) for c in codes_day]),
-            "t_am": round(min(temps_all)) if temps_all else None,
-            "t_pm": round(max(temps_all)) if temps_all else None,
+            "t_am": round(t_am) if t_am is not None else None,
+            "t_pm": round(t_pm) if t_pm is not None else None,
             "rh_pm": round(blended["relative_humidity_2m"][rh_pm_key]) if rh_pm_key in blended["relative_humidity_2m"] else None,
-            "uv_max": round(max((v for t, v in blended["uv_index"].items() if t.startswith(d)), default=0)),
+            "uv_max": round(uv_max or 0),
             "wind_kmh": round(wind_kmh), "wind_dir": round(wind_dir),
             # Drops from the SAME rounded figure that gets published, or the two
             # disagree at every threshold: 0.96 mm publishes as "1.0 mm" while
@@ -454,7 +510,7 @@ def main():
 
     log_published(blended, now_dt)
 
-    days = build_days(data, blended)
+    days = build_days(data, blended, decisions)
     forecast = {
         "generated_at": datetime.now(tz).isoformat(),
         "coords": {"lat": LAT, "lon": LON, "elev": ELEVATION},

@@ -23,7 +23,13 @@ jobs:
       - run: pip install -r pipeline/requirements.txt
 
       - run: python3 pipeline/fetch_models.py
-      - run: python3 pipeline/fetch_obs.py
+      # --latest so this run also refreshes docs/now.json. It was already
+      # fetching the observations and throwing the zdaj half away, while
+      # now.yml's every-30-min schedule is dropped so hard by GitHub that the
+      # median real gap is ~2h — past the 120 min at which app.js rejects
+      # now.json and falls back to showing a forecast block as if it were a
+      # measurement. Four guaranteed refreshes a day for no extra request.
+      - run: python3 pipeline/fetch_obs.py --latest
 
       # backtest.py pulls ~13 months of history — spec wants it run once at
       # build, then monthly, not on every daily run.

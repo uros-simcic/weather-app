@@ -133,6 +133,9 @@ body {
    Drawn as an inset shadow and an absolutely-placed mark, never a border or a
    real child: the cells are a fixed 106px basis and a fixed height, and both
    of those would change this one cell's geometry alone. */
+/* Every next-day cell, so the run of them reads as a separate stretch rather
+   than as more of today. Background only — nothing that changes geometry. */
+.cell--nextday { background: #e4e4e0; }
 .cell--daybreak { box-shadow: inset 3px 0 0 var(--blue-rain); }
 .cell--daybreak::before {
   content: attr(data-daybreak);

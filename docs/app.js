@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=7';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=8';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -11,7 +11,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const BLOCKS_PER_DAY = 8;
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '7';
+const ICONS_VERSION = '8';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -192,13 +192,14 @@ function makeWindArrow(dir, speed) {
   return svg;
 }
 
-function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick, showHint, daybreak }) {
+function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick, showHint, daybreak, isNextDay }) {
   const cell = document.createElement('div');
-  // daybreak marks the first cell of the next day. The row runs 24h forward, so
-  // from mid-afternoon on most of it is tomorrow while the header still reads
-  // "danes" — without a divider there is nothing to say where today ends.
+  // The row runs 24h forward, so from mid-afternoon on most of it is tomorrow
+  // while the header still reads "danes". Every next-day cell is tinted so the
+  // run of them reads as one stretch, and the first carries the date and rule.
   cell.className = 'cell card' + (isZdaj || highlight ? ' cell--selected' : '')
-    + (onClick ? ' cell--tappable' : '') + (daybreak ? ' cell--daybreak' : '');
+    + (onClick ? ' cell--tappable' : '') + (isNextDay ? ' cell--nextday' : '')
+    + (daybreak ? ' cell--daybreak' : '');
   if (daybreak) cell.dataset.daybreak = daybreak;
 
   if (onClick) {
@@ -287,9 +288,10 @@ function formatDayMark(dateStr) {
 }
 
 
-function blockCell(block, daybreak) {
+function blockCell(block, daybreak, isNextDay) {
   return buildCell({
     daybreak,
+    isNextDay,
     label: block.label,
     icon: block.icon,
     drops: block.drops,
@@ -442,16 +444,25 @@ function renderTopRow(forecast, now) {
   const rendered = [];
   let markedDaybreak = false;
   for (const block of candidates) {
-    if (new Date(block.end).getTime() <= nowTs) continue;
+    // With a zdaj cell present, drop the block that is currently running as
+    // well as the expired ones: zdaj already covers that period, so keeping it
+    // put the same three hours on screen twice, side by side. They are worst
+    // when now.json is stale, because zdaj then falls back to that very
+    // block's values and the two cells become character-for-character equal.
+    // Without zdaj the running block is the only thing showing the present, so
+    // it stays.
+    const cutoff = now ? new Date(block.start).getTime() : new Date(block.end).getTime();
+    if (cutoff <= nowTs) continue;
     // A block belongs to the next day once it starts on a later date than the
     // one the header names. Only the first gets the divider.
     const startsOn = block.start.slice(0, 10);
+    const isNextDay = !!todayDate && startsOn > todayDate;
     let daybreak = null;
-    if (!markedDaybreak && todayDate && startsOn > todayDate) {
+    if (isNextDay && !markedDaybreak) {
       daybreak = formatDayMark(startsOn);
       markedDaybreak = true;
     }
-    row.appendChild(blockCell(block, daybreak));
+    row.appendChild(blockCell(block, daybreak, isNextDay));
     rendered.push(block.start);
     if (++shown === BLOCKS_PER_DAY) break;
   }

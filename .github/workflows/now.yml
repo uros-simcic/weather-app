@@ -2,7 +2,11 @@ name: now
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # Asking for every 15 min to get every 30. GitHub drops scheduled runs on
+    # free runners under load: at */30 the measured median gap between real
+    # runs was 121 min, against the 120 min at which app.js declares now.json
+    # stale — so more often than not the page fell back to a forecast block.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:

@@ -15,13 +15,13 @@
      look live and still be running the previous version.
      BUMP ALL FOUR TOGETHER on any change to app.js, config.js, style.css or
      icons.svg: the three below and ICONS_VERSION at the top of app.js. -->
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 <!-- config.js is imported by app.js, so the browser cannot discover it until
      app.js has downloaded and parsed - a third serial hop before the header can
      be drawn, for a file nothing needs until the last section renders.
      The href must match app.js's import specifier exactly or the preload is
      fetched and then ignored. -->
-<link rel="modulepreload" href="config.js?v=6">
+<link rel="modulepreload" href="config.js?v=7">
 </head>
 <body>
 <div id="icons-holder"></div>
@@ -52,12 +52,21 @@
 
   <div id="links" class="links"></div>
 
-  <div id="radar-panel" class="panel card blur-panel">
+  <!-- hidden until renderPanels() gives the media a src, like the banner and
+       the hail pill above. An <img> with no src draws as a broken-image icon
+       with its alt text, and these two are the last thing the staggered reveal
+       reaches — so the page spent its whole load showing what looked like a
+       failed image below the forecast. -->
+  <div id="radar-panel" class="panel card blur-panel" hidden>
     <a href="https://meteo.arso.gov.si/met/sl/weather/observ/radar" target="_blank" rel="noopener noreferrer">
-      <img id="radar-img" alt="Radar padavin" loading="lazy" referrerpolicy="no-referrer">
+      <!-- no loading="lazy": the panel starts hidden and a hidden element is
+           never in the viewport, so lazy defers the fetch forever, onload
+           never fires and the panel stays hidden for good. renderPanels()
+           already runs last, which is the deferral that was wanted. -->
+      <img id="radar-img" alt="Radar padavin" referrerpolicy="no-referrer">
     </a>
   </div>
-  <div id="satellite-panel" class="panel card blur-panel">
+  <div id="satellite-panel" class="panel card blur-panel" hidden>
     <a href="https://meteo.arso.gov.si/met/sl/weather/observ/satelit" target="_blank" rel="noopener noreferrer">
       <video id="satellite-video" autoplay loop muted playsinline aria-label="Satelitska slika oblačnosti">
         <source type="video/mp4">
@@ -70,6 +79,6 @@
   </footer>
 </div>
 
-<script type="module" src="app.js?v=6"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=6';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=7';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -11,7 +11,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const BLOCKS_PER_DAY = 8;
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '6';
+const ICONS_VERSION = '7';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -192,9 +192,14 @@ function makeWindArrow(dir, speed) {
   return svg;
 }
 
-function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick, showHint }) {
+function buildCell({ label, icon, drops, pop, temps, rh, uv, wind_kmh, wind_dir, isZdaj, highlight, onClick, showHint, daybreak }) {
   const cell = document.createElement('div');
-  cell.className = 'cell card' + (isZdaj || highlight ? ' cell--selected' : '') + (onClick ? ' cell--tappable' : '');
+  // daybreak marks the first cell of the next day. The row runs 24h forward, so
+  // from mid-afternoon on most of it is tomorrow while the header still reads
+  // "danes" — without a divider there is nothing to say where today ends.
+  cell.className = 'cell card' + (isZdaj || highlight ? ' cell--selected' : '')
+    + (onClick ? ' cell--tappable' : '') + (daybreak ? ' cell--daybreak' : '');
+  if (daybreak) cell.dataset.daybreak = daybreak;
 
   if (onClick) {
     cell.tabIndex = 0;
@@ -275,8 +280,16 @@ function scrollRowTo(row, firstCell, targetCell) {
   requestAnimationFrame(setX);
 }
 
-function blockCell(block) {
+// "2026-08-01" -> "1.8." — the same day.month. form the header already uses.
+function formatDayMark(dateStr) {
+  const [, m, d] = dateStr.split('-');
+  return `${Number(d)}.${Number(m)}.`;
+}
+
+
+function blockCell(block, daybreak) {
   return buildCell({
+    daybreak,
     label: block.label,
     icon: block.icon,
     drops: block.drops,
@@ -427,9 +440,18 @@ function renderTopRow(forecast, now) {
   // Counted separately from row.children: zdaj is already in the row above.
   let shown = 0;
   const rendered = [];
+  let markedDaybreak = false;
   for (const block of candidates) {
     if (new Date(block.end).getTime() <= nowTs) continue;
-    row.appendChild(blockCell(block));
+    // A block belongs to the next day once it starts on a later date than the
+    // one the header names. Only the first gets the divider.
+    const startsOn = block.start.slice(0, 10);
+    let daybreak = null;
+    if (!markedDaybreak && todayDate && startsOn > todayDate) {
+      daybreak = formatDayMark(startsOn);
+      markedDaybreak = true;
+    }
+    row.appendChild(blockCell(block, daybreak));
     rendered.push(block.start);
     if (++shown === BLOCKS_PER_DAY) break;
   }
@@ -522,6 +544,9 @@ function panelFallback(panel, href, label) {
   // page — the next refresh found nothing to retry with and skipped it.
   const media = panel.querySelector('img, video');
   if (media) media.hidden = true;
+  // The link IS the content in this state, so the panel has to come out of
+  // hiding even though the media never loaded.
+  panel.hidden = false;
   if (panel.querySelector('.panel__fallback')) return;  // already showing
   const a = document.createElement('a');
   a.href = href;
@@ -552,6 +577,9 @@ function renderPanels() {
   const radarPanel = document.getElementById('radar-panel');
   const radarImg = resetPanel(radarPanel);
   if (radarImg) {
+    // Reveal only once there is something to show — see the comment on the
+    // panel in index.html. A refresh leaves an already-visible panel alone.
+    radarImg.onload = () => { radarPanel.hidden = false; };
     radarImg.onerror = () => panelFallback(
       radarPanel,
       'https://meteo.arso.gov.si/met/sl/weather/observ/radar', 'Radar padavin (ARSO)');
@@ -567,6 +595,7 @@ function renderPanels() {
     // the file (verified in Chrome).
     const staleSource = satVideo.querySelector('source');
     if (staleSource) staleSource.remove();
+    satVideo.onloadeddata = () => { satPanel.hidden = false; };
     satVideo.onerror = () => panelFallback(
       satPanel,
       'https://meteo.arso.gov.si/met/sl/weather/observ/satelit', 'Satelitska slika (ARSO)');

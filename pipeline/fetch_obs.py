@@ -23,6 +23,7 @@ from config import (
     ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
     ELEVATION, FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS,
     LAT, LON, OPEN_METEO_URL, TIMEZONE,
+    WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL, WU_PWS_WEB_KEY,
 )
 from features import wmo_to_icon
 from safe_write import write_json
@@ -109,6 +110,53 @@ def fetch_arso_stations(now_dt):
     return out
 
 
+def fetch_vipolze():
+    """The Vipolže personal weather station, the only one inside Brda.
+
+    Logged for cross-checking against the valley stations 9-14km away — it does
+    not feed zdaj, which stays ARSO-only. Temperature and humidity only; it
+    reports no usable wind and UV comes back null. Any failure returns nothing
+    rather than a partial reading, never guessed (§7.10).
+    """
+    try:
+        resp = requests.get(WU_PWS_URL, params={
+            "stationId": WU_PWS_STATION, "format": "json",
+            "units": "m", "apiKey": WU_PWS_WEB_KEY,
+        }, timeout=20)
+        resp.raise_for_status()
+        observations = resp.json().get("observations") or []
+    except (requests.RequestException, ValueError) as e:
+        print(f"vipolze: request failed, skipping ({e})", file=sys.stderr)
+        return {}
+    if not observations:
+        print("vipolze: no observation returned", file=sys.stderr)
+        return {}
+
+    obs = observations[0]
+    # -1 is WU's "failed quality control"; 0 is "not checked", which is normal
+    # for a station that reports rarely, so only -1 is rejected.
+    if obs.get("qcStatus") == -1:
+        print("vipolze: reading failed WU quality control, skipping", file=sys.stderr)
+        return {}
+    epoch = obs.get("epoch")
+    if epoch is None:
+        return {}
+    # From the epoch rather than obsTimeLocal, so the clock matches the naive
+    # Ljubljana wall time every other station in this file is keyed on without
+    # trusting a preformatted string.
+    obs_time = (datetime.fromtimestamp(epoch, ZoneInfo(TIMEZONE))
+                .replace(tzinfo=None, second=0, microsecond=0))
+    metric = obs.get("metric") or {}
+    readings = {
+        "obs_time": obs_time,
+        "temperature_2m": metric.get("temp"),
+        "relative_humidity_2m": obs.get("humidity"),
+    }
+    if readings["temperature_2m"] is None and readings["relative_humidity_2m"] is None:
+        return {}
+    return {WU_PWS_NAME: readings}
+
+
 def fetch_fvg_stations():
     wanted = {FVG_STATION_CAPRIVA: "CAPRIVA", FVG_STATION_CORMONS: "CORMONS"}
     out = {}
@@ -156,10 +204,15 @@ def _to_float(v):
         return None
 
 
-def build_log_rows(now_dt, arso, fvg):
+def build_log_rows(now_dt, arso, fvg, pws=None):
     rows = []
+    # Logged under its own network name, not "arso": verify.py scores against
+    # arso rows only, and quietly folding a personal station into the official
+    # ground truth would change what every past number was measured against.
     for station, network, readings in (
-        [(k, "arso", v) for k, v in arso.items()] + [(k, "fvg", v) for k, v in fvg.items()]
+        [(k, "arso", v) for k, v in arso.items()]
+        + [(k, "fvg", v) for k, v in fvg.items()]
+        + [(k, "wu", v) for k, v in (pws or {}).items()]
     ):
         obs_time = readings["obs_time"].isoformat()
         for var, value in readings.items():
@@ -170,10 +223,15 @@ def build_log_rows(now_dt, arso, fvg):
     return rows
 
 
-def compute_zdaj(now_dt, arso):
-    """Staleness + sanity-bounded median across ARSO stations only (§4.2)."""
+def compute_zdaj(now_dt, stations):
+    """Staleness + sanity-bounded median across Bilje, Nova Gorica and Vipolže.
+
+    Vipolže is the only one inside Brda; the ARSO pair are 9-14km away in the
+    valley. It reports no wind, and a variable a station does not report is
+    skipped below, so wind stays an ARSO figure on its own.
+    """
     fresh = {}
-    for station, readings in arso.items():
+    for station, readings in stations.items():
         age_min = (now_dt - readings["obs_time"]).total_seconds() / 60
         if age_min > STALE_MINUTES:
             continue
@@ -306,16 +364,19 @@ def main():
 
     arso = fetch_arso_stations(now_dt)
     fvg = fetch_fvg_stations()
-    append_log(build_log_rows(now_dt, arso, fvg))
+    pws = fetch_vipolze()
+    append_log(build_log_rows(now_dt, arso, fvg, pws))
 
     if latest:
-        zdaj, stations_used, latest_obs_time = compute_zdaj(now_dt, arso)
+        # FVG stays out of the live figure: its feed carries a 24h no-republish
+        # clause, so it is training and backtest only.
+        zdaj, stations_used, latest_obs_time = compute_zdaj(now_dt, {**arso, **pws})
         hourly = fetch_model_hourly(now_dt)
         zdaj = apply_lag_correction(zdaj, latest_obs_time, now_dt, hourly)
         write_now_json(now_dt, zdaj, stations_used, hourly)
         print(f"zdaj: {zdaj} from {stations_used} (obs {latest_obs_time})")
 
-    print(f"logged {len(arso)} ARSO + {len(fvg)} FVG station readings")
+    print(f"logged {len(arso)} ARSO + {len(fvg)} FVG + {len(pws)} PWS station readings")
 
 
 if __name__ == "__main__":

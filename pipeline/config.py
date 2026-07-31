@@ -37,6 +37,19 @@ ARSO_OBS_URL_TEMPLATE = (
 ARSO_STATION_BILJE = "M402"        # 55m, ~13-14km from Brda (valley)
 ARSO_STATION_NOVA_GORICA = "E421"  # 113m, ~9-10km from Brda (valley)
 
+# The only station actually in Brda: a personal weather station at Vipolže,
+# 45.976/13.537, ~2.5km from our point against 9-14km for the two ARSO ones.
+# Logged for cross-checking the valley stations — it does not feed zdaj.
+#
+# Not a secret: this is the key Weather Underground ships to every visitor in
+# its own page source, so it grants nothing that loading the site does not. It
+# buys a documented JSON shape instead of scraping a dashboard, and can be
+# rotated without warning, so a failed fetch simply yields no reading.
+WU_PWS_URL = "https://api.weather.com/v2/pws/observations/current"
+WU_PWS_STATION = "IBRDAM11"
+WU_PWS_NAME = "VIPOLZE"
+WU_PWS_WEB_KEY = "e1f10a1e78da46f5b10a1e78da96f525"
+
 # FVG stations: training/backtest use only, never the live "zdaj" feed — their
 # XML carries a 24h no-republish clause for real-time data.
 FVG_OBS_URL_TEMPLATE = "https://dev.meteo.fvg.it/xml/stazioni/{code}.xml"

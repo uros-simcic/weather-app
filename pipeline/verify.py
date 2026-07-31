@@ -41,6 +41,7 @@ TZ_FIX_CUTOFF = datetime(2026, 7, 26)
 # short keys — 't', 'rh' — which never matched the log, so every lookup missed
 # and verification silently scored zero rows.)
 SCORED_VARS = ("temperature_2m", "relative_humidity_2m", "wind_speed_10m")
+SCORED_NETWORKS = ("arso", "wu")
 
 
 def load_observations():
@@ -55,7 +56,11 @@ def load_observations():
     per_hour = defaultdict(list)
     with open(OBS_LOG) as f:
         for r in csv.DictReader(f):
-            if r.get("network") != "arso":
+            # The same sources zdaj is built from, so what the forecast is
+            # scored against is what the app actually showed — Vipolže included,
+            # since it is the only station in Brda. FVG is still excluded: its
+            # 24h no-republish clause makes it training-only.
+            if r.get("network") not in SCORED_NETWORKS:
                 continue
             try:
                 dt = datetime.fromisoformat(r["obs_time"])

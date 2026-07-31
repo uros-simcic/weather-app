@@ -277,7 +277,15 @@ def write_now_json(now_dt, zdaj, stations_used, hourly=None):
         icon = icon if icon is not None else fb_icon
         uv = uv if uv is not None else fb_uv
     payload = {
-        "measured_at": now_dt.isoformat(),
+        # Published with its UTC offset, the way blend.py writes generated_at.
+        # It used to go out naive and app.js pinned "+02:00" onto it to parse
+        # it, which is right only in CEST — after the October change that reads
+        # every measurement as an hour older than it is, and since anything over
+        # 120 min is rejected, now.json would be thrown away from ~61 min old
+        # and the page would quietly show a forecast block as if it were a
+        # station reading. now_dt stays naive everywhere else: the rest of this
+        # file does arithmetic against other naive datetimes.
+        "measured_at": now_dt.replace(tzinfo=ZoneInfo(TIMEZONE)).isoformat(),
         "t": zdaj.get("temperature_2m"),
         "rh": zdaj.get("relative_humidity_2m"),
         "wind_kmh": zdaj.get("wind_speed_10m"),

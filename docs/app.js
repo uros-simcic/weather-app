@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=10';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=11';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -8,7 +8,7 @@ const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '10';
+const ICONS_VERSION = '11';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -364,6 +364,29 @@ function dayOwnBlocks(days, idx) {
 }
 
 
+// fetch_obs.py publishes measured_at with its UTC offset, so it parses on its
+// own. The fallback is only for a now.json written by the previous pipeline,
+// which lives at most one now.yml run: those are naive Ljubljana wall clock,
+// and pinning the offset on is what this used to do unconditionally — wrong by
+// an hour once the clocks go back, which silently aged every reading past the
+// staleness cutoff and replaced it with a forecast block.
+function parseMeasuredAt(value) {
+  if (!value) return NaN;
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value);
+  return new Date(hasZone ? value : value + (isCestNow() ? '+02:00' : '+01:00')).getTime();
+}
+
+// Whether Europe/Ljubljana is on summer time right now, read off the zone
+// itself rather than assumed, so the fallback above is right in both halves
+// of the year.
+function isCestNow() {
+  const offset = new Intl.DateTimeFormat('en', {
+    timeZone: 'Europe/Ljubljana', timeZoneName: 'longOffset',
+  }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName');
+  return !offset || offset.value.includes('+02');
+}
+
+
 function renderTopRow(forecast, now) {
   const row = document.getElementById('today-row');
   // Captured before the rebuild so a same-day re-render can restore the user's
@@ -661,10 +684,9 @@ async function loadAndRender() {
     if (nowResult.error) throw nowResult.error;
     now = nowResult.value;
     if (now == null || typeof now.t !== 'number') throw new Error('now.json missing expected fields');
-    // measured_at is naive Ljubljana local; compare against the same wall clock.
     // Without this an outage froze now.json and hours-old readings kept being
     // presented as current, with no banner and a live-ticking header clock.
-    const measuredAge = (Date.now() - new Date(now.measured_at + '+02:00').getTime()) / 60000;
+    const measuredAge = (Date.now() - parseMeasuredAt(now.measured_at)) / 60000;
     if (Number.isFinite(measuredAge) && measuredAge > 120) {
       throw new Error('now.json is ' + Math.round(measuredAge) + ' min old');
     }
@@ -692,12 +714,13 @@ async function loadAndRender() {
 // only yielded the task queue — it does not guarantee the browser commits a
 // frame, and all five sections finished inside ~30 ms anyway, so they landed
 // together and the page still appeared all at once.
-// 80 ms was the first attempt and still read as one flash: four gaps is 0.32 s
-// in total, which is about the point where separate events start being seen as
-// one. At 200 ms the whole cascade takes 0.8 s and each section is unmistakably
-// its own arrival. Four gaps, so: raise it to slow the cascade, lower it to
-// speed it up, set it to 0 to go back to everything at once.
-const STEP_MS = 200;
+// Briefly raised to 200 ms when the reveal seemed not to be working. It was:
+// the radar panel had no src until the last step and drew a broken-image icon
+// the whole way down, so a slower cascade only held that on screen longer. The
+// panels are hidden until they load now, and 80 ms is back. Four gaps, so:
+// raise it to slow the cascade, lower it to speed it up, set it to 0 to go
+// back to everything at once.
+const STEP_MS = 80;
 
 // Waits for the browser to actually paint what has been built so far.
 // rAF fires only after the previous step is committed to the screen, but it

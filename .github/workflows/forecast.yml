@@ -55,7 +55,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/ docs/forecast.json
           git diff --cached --quiet || git commit -m "Update forecast data"
+          pushed=""
           for i in 1 2 3; do
-            git push && break
-            git pull --rebase
+            if git push; then pushed=1; break; fi
+            # --autostash so an unstaged leftover can't block the pull, and
+            # abort on conflict so the next attempt starts on a branch rather
+            # than mid-rebase. Without the trailing || true the step's shell
+            # (bash -e) dies here and the loop never reaches attempt 2.
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep 5
           done
+          [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }

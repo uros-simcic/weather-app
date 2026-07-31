@@ -1,0 +1,10 @@
+# Both workflows append observation rows to this file - now.yml every 30 min,
+# forecast.yml at the end of a job that runs for minutes - so the two commits
+# regularly touch the same tail and the rebase in the push loop conflicts.
+# The file is append-only and its readers key by column and take a median per
+# hour, so keeping both sides of a conflicting append is always the right call.
+#
+# Deliberately not data/*.csv: log_published.csv holds several runs per
+# valid_time and verify.py takes the last row it reads, so interleaving two
+# runs there would silently change which forecast gets scored.
+data/log_obs.csv merge=union

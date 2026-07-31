@@ -40,6 +40,21 @@ PRO_VREME_ROW_MAP = {
 }
 
 
+# How much of the log to keep. It is committed to the repo on every run, and
+# every run adds ~6,700 rows / ~390 KB, so left alone it grows about 1.6 MB a
+# day — it was on course to cross GitHub's hard 100 MB push limit around
+# September 2026, at which point every push fails, the retry loop exhausts, and
+# the page silently freezes on its last forecast.
+#
+# 30 days is roughly 47 MB, which is the most that is reasonable to carry in a
+# repo GitHub Pages serves and CI checks out four times a day. Note that this
+# is far short of the 13 months train.py would want for live-row training: if
+# that is ever wired up (load_live_rows is currently defined but never called),
+# the way to buy history is to log fewer leads per run rather than to raise
+# this number.
+LOG_RETENTION_DAYS = 30
+
+
 def append_rows(rows):
     if not rows:
         return
@@ -50,6 +65,48 @@ def append_rows(rows):
         if is_new:
             writer.writeheader()
         writer.writerows(rows)
+    trim_log()
+
+
+def trim_log():
+    """Drop rows older than the retention window.
+
+    Written to a temp file and renamed rather than rewritten in place: this
+    runs right after the append, so a crash part way through an in-place
+    rewrite would take the freshly logged run down with the old rows.
+    """
+    if not os.path.exists(LOG_PATH):
+        return
+    cutoff = (datetime.now(ZoneInfo(TIMEZONE)).replace(tzinfo=None)
+              - timedelta(days=LOG_RETENTION_DAYS)).isoformat()
+    tmp = LOG_PATH + ".tmp"
+    kept = dropped = 0
+    try:
+        with open(LOG_PATH, newline="") as src, open(tmp, "w", newline="") as dst:
+            reader = csv.reader(src)
+            writer = csv.writer(dst)
+            header = next(reader, None)
+            if header is None:
+                os.remove(tmp)
+                return
+            writer.writerow(header)
+            for row in reader:
+                # ISO timestamps compare correctly as strings at fixed width;
+                # a malformed or empty run_time is kept rather than silently
+                # discarded, so a parse bug can never eat the archive.
+                if row and row[0] and row[0] < cutoff:
+                    dropped += 1
+                    continue
+                writer.writerow(row)
+                kept += 1
+        os.replace(tmp, LOG_PATH)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+    size_mb = os.path.getsize(LOG_PATH) / 1e6
+    print(f"log_forecasts: kept {kept} rows, dropped {dropped} older than "
+          f"{LOG_RETENTION_DAYS}d ({size_mb:.1f} MB)")
 
 
 def fetch_open_meteo(run_time, run_dt):

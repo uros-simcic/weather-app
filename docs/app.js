@@ -1,14 +1,17 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=11';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=12';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
 const COMPASS = ['S', 'SV', 'V', 'JV', 'J', 'JZ', 'Z', 'SZ'];
 const SVGNS = 'http://www.w3.org/2000/svg';
+// Indexed by Date#getDay (0 = Sunday). Same abbreviations blend.py writes into
+// day.name for the week row, so the header names a day the way the row does.
+const DAY_NAMES = ['NED', 'PON', 'TOR', 'SRE', 'ČET', 'PET', 'SOB'];
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '11';
+const ICONS_VERSION = '12';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -314,18 +317,15 @@ function updateViewDay(dateStr) {
     year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Europe/Ljubljana',
   }).format(new Date(Date.now() + 86400000));
 
-  // Lowercase throughout: Slovenian does not capitalise day names mid-sentence,
-  // and the label reads as part of "Brda: danes, …".
+  // "danes"/"jutri" stay spelled out — they are not day names, and they read as
+  // part of "Brda: danes, …". Every other day uses the same three-letter form
+  // the week row shows, so the header and the row it describes match.
   let label;
   if (dateStr === today) label = 'danes';
   else if (dateStr === tomorrow) label = 'jutri';
-  else {
-    label = new Intl.DateTimeFormat('sl-SI', {
-      weekday: 'long', timeZone: 'Europe/Ljubljana',
-    }).format(d).toLowerCase();
-  }
+  else label = DAY_NAMES[d.getDay()];
   const date = new Intl.DateTimeFormat('sl-SI', {
-    day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Ljubljana',
+    day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'Europe/Ljubljana',
   }).format(d).replace(/\s/g, '');
   el.textContent = label + ', ' + date;
 }
@@ -541,7 +541,10 @@ function renderLinks() {
     a.href = href;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.className = 'card' + (label === 'ARSO' ? ' links__arso' : '');
+    // blur-panel as well as card: the buttons carried the glass gradient but
+    // not the blur behind it, so they read flat next to the hail pill and the
+    // radar panels, which have both.
+    a.className = 'card blur-panel' + (label === 'ARSO' ? ' links__arso' : '');
     a.textContent = label;
     wrap.appendChild(a);
   }

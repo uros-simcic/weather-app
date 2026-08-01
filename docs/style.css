@@ -39,7 +39,9 @@ body {
    border and an inner highlight reads as glass and costs nothing. */
 .glass,
 .card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 255, 255, .34));
+  /* Lighter than it was (.62/.34): more of the page gradient shows through, so
+     the panels read as glass over the background rather than as white cards. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .18));
   border: 1px solid rgba(255, 255, 255, .75);
   box-shadow: 0 1px 2px rgba(0, 0, 0, .06), inset 0 1px 0 rgba(255, 255, 255, .85);
   border-radius: 12px;
@@ -50,7 +52,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .blur-panel { background: rgba(255, 255, 255, .75); }
+  .blur-panel { background: rgba(255, 255, 255, .62); }
 }
 
 /* Header: three items (place / date-time / sun-group) spread across the
@@ -97,10 +99,14 @@ body {
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  /* 4px padding keeps the selected cell's 2px border from being clipped;
-     no bottom margin, so cell-to-cell spacing between rows stays at 8px. */
+  /* 4px padding keeps the selected cell's 2px border from being clipped, and
+     the matching negative margin stops that padding pushing the cells inward:
+     without it both rows sat 4px inside the header, buttons and panels, which
+     all start at the page's own edge. Cancels out, so nothing is clipped and
+     every left and right edge on the page lines up.
+     No bottom margin, so cell-to-cell spacing between rows stays at 8px. */
   padding: 4px;
-  margin-bottom: 0;
+  margin: 0 -4px;
 }
 .row::-webkit-scrollbar { display: none; }
 
@@ -120,7 +126,9 @@ body {
 }
 /* Shared highlight: the zdaj cell and the tapped week day both wear it. */
 .cell--selected {
-  background: rgba(255, 255, 255, .65);
+  /* Eased with the rest of the glass, but still clearly brighter than the
+     cells either side of it — that contrast is the whole point of the class. */
+  background: rgba(255, 255, 255, .55);
   border: 2px solid var(--blue-rain);
 }
 .cell--tappable { cursor: pointer; }

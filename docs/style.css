@@ -110,12 +110,26 @@ body {
 }
 .row::-webkit-scrollbar { display: none; }
 
-/* flex-basis must exceed the widest content (two 25px temps ≈ 100px): flex
-   items can't shrink below min-content, so week cells silently grew wider
-   than today cells at 92px — the rows only match when the basis fits both. */
+/* Exactly three to a row, gaps taken out first. A fixed basis cannot divide an
+   arbitrary width evenly — at 106px three cells and two gaps came to 334 in a
+   336px row, so both rows stopped 2px short of the buttons and panels below
+   them. As a fraction the third cell lands on the right edge whatever the
+   window is, and a row with more than three scrolls from exactly there.
+   It must still exceed the widest content (two 25px temps ≈ 100px): flex items
+   cannot shrink below min-content, and at 92px the week cells silently grew
+   wider than the today ones — the rows only match when the basis fits both.
+   At a 400px page this is ~107px, so that floor still holds. */
 .cell {
   position: relative;  /* anchor for the absolutely-placed tap hint */
-  flex: 0 0 106px;
+  flex: 0 0 calc((100% - 16px) / 3);
+  /* Floor for narrow screens. Below ~390px the fraction falls under what a
+     week cell's two temperatures need, and since a flex item cannot shrink
+     past its own content the week cells would hold at ~100px while the
+     single-temperature today cells kept shrinking — the two rows drifting out
+     of step, which is the bug the basis was fixed at 106px to avoid. With the
+     floor both rows keep identical cells and the row simply scrolls, clipping
+     at the container edge, which lines up on the right either way. */
+  min-width: 106px;
   height: 248px;
   padding: 12px 4px 12px;
   display: flex;

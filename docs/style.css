@@ -99,14 +99,18 @@ body {
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  /* 4px padding keeps the selected cell's 2px border from being clipped, and
-     the matching negative margin stops that padding pushing the cells inward:
-     without it both rows sat 4px inside the header, buttons and panels, which
-     all start at the page's own edge. Cancels out, so nothing is clipped and
-     every left and right edge on the page lines up.
+  /* Vertical padding only, so the row's own box is exactly as wide as the
+     header, buttons and panels. It carried 4px on all four sides, which pushed
+     the cells inward; compensating with a negative horizontal margin lined the
+     cells up but left the row itself 4px wider than everything else on both
+     sides — and since the row is a scroller, that box is the clipping edge, so
+     scrolled cells stayed visible past the buttons.
+     The padding was there for the selected cell's 2px border, but box-sizing is
+     border-box, so that border is inside the cell and was never clipped. What
+     it actually protected is the card's box-shadow; keeping the vertical
+     padding keeps the shadow above and below, where it is cast.
      No bottom margin, so cell-to-cell spacing between rows stays at 8px. */
-  padding: 4px;
-  margin: 0 -4px;
+  padding: 4px 0;
 }
 .row::-webkit-scrollbar { display: none; }
 

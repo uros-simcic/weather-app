@@ -5,6 +5,8 @@
 An AI-corrected weather forecast for Brda, Slovenia, merged from six numerical
 weather models and scored against local station measurements.
 
+Full behaviour is specified in [`SPEC.md`](SPEC.md); this page is the summary.
+
 ## The models being merged
 
 | Model | Run by | Grid | Reaches |

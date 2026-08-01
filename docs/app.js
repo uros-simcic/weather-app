@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=12';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=13';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -11,7 +11,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const DAY_NAMES = ['NED', 'PON', 'TOR', 'SRE', 'ČET', 'PET', 'SOB'];
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '12';
+const ICONS_VERSION = '13';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -345,22 +345,19 @@ function flashHint() {
   }, 2000);
 }
 
-// The blocks that actually fall on a given day.
-//
-// A day's stored list opens with the 23-02 block that began at 23:00 the
-// evening BEFORE it (spec §7.2), so tapping SOB opened on Friday night — and
-// the row was only readable because it auto-scrolled past it, which cannot
-// work on a window wide enough that the row barely scrolls at all.
-// Selecting by start date instead gives the day as anyone means it: 02-05
-// through 20-23, then the 23-02 that begins that evening, which is filed as
-// the next day's first block.
-function dayOwnBlocks(days, idx) {
-  const day = days[idx];
-  if (!day || !day.blocks) return [];
-  const own = day.blocks.filter((b) => b.start.slice(0, 10) === day.date);
-  const next = days[idx + 1];
-  const tail = ((next && next.blocks) || []).filter((b) => b.start.slice(0, 10) === day.date);
-  return own.concat(tail);
+// Hour a tapped day opens on, so the morning leads rather than the small hours.
+// Matched on the block's real start time rather than its label: the labels are
+// a pipeline detail that has already been re-phased once, and a hard-coded
+// string silently stops matching the moment they change — leaving the row with
+// no scroll target and no error to say so.
+// 8 is the old 23:00-phased grid's morning block. It stays only until the last
+// forecast.json written before the re-phasing has rolled off, which is one
+// forecast run — without it a day tapped in that window finds no target and
+// opens on its small hours again. Safe to drop after that.
+const DAY_OPEN_HOURS = [9, 8];
+
+function opensTheDay(block) {
+  return DAY_OPEN_HOURS.includes(new Date(block.start).getHours());
 }
 
 
@@ -402,14 +399,17 @@ function renderTopRow(forecast, now) {
     const dIdx = days.findIndex((d) => d.date === selectedDate);
     const day = dIdx >= 0 ? days[dIdx] : null;
     if (day && day.blocks) {
+      // The day's own blocks, straight through: the grid runs midnight to
+      // midnight now, so a day is exactly its eight blocks with nothing
+      // borrowed from either neighbour.
       let firstCell = null, startCell = null;
-      for (const block of dayOwnBlocks(days, dIdx)) {
+      for (const block of day.blocks) {
         const cell = blockCell(block);
         if (!firstCell) firstCell = cell;
-        if (block.label === '08-11') startCell = cell;
+        if (opensTheDay(block)) startCell = cell;
         row.appendChild(cell);
       }
-      // Only jump to 08-11 when the selection actually changed. A background
+      // Only jump to the morning when the selection actually changed. A background
       // refresh (focus/pageshow/30-min timer) re-renders the same day, and
       // scrolling then yanked the user back from whatever hour they were reading.
       if (lastScrolledDate !== selectedDate) {
@@ -418,7 +418,7 @@ function renderTopRow(forecast, now) {
       } else {
         // Same two-phase assert scrollRowTo uses: iOS Safari drops a scrollLeft
         // set immediately after the cells are inserted, which silently undid the
-        // restore and left the row back at the 23-02 cell.
+        // restore and left the row back at the first cell of the day.
         const restore = () => { row.scrollLeft = preservedScrollLeft; };
         restore();
         requestAnimationFrame(restore);

@@ -26,7 +26,7 @@ DECISIONS_PATH = os.path.join(DATA_DIR, "blend_decisions.json")
 SITE_DIR = os.path.join(os.path.dirname(__file__), "..", "docs")
 FORECAST_PATH = os.path.join(SITE_DIR, "forecast.json")
 
-BLOCK_LABELS = ["23-02", "02-05", "05-08", "08-11", "11-14", "14-17", "17-20", "20-23"]
+BLOCK_LABELS = ["00-03", "03-06", "06-09", "09-12", "12-15", "15-18", "18-21", "21-00"]
 # storm > snow > rain > fog > cloud > partly > sun (spec §7.2)
 ICON_SEVERITY = ["sun", "partly", "cloud", "fog", "rain", "snow", "storm"]
 
@@ -335,11 +335,21 @@ def blend_hourly(data, now_dt, models, decisions):
 
 
 def build_blocks(blended, target_date):
-    """Eight 3-hour blocks for target_date, starting the previous day at 23:00
-    (the 23-02 block spans midnight, per spec §7.2). Built for every day so the
-    frontend can show any day's hourly breakdown on tap."""
+    """Eight 3-hour blocks for target_date, midnight to midnight.
+
+    The grid used to be phased to 23:00 the previous evening (spec §7.2), which
+    left every day opening on a block that began the night before and closing
+    on one that ran three hours into the next — so a day could not be shown
+    without either borrowing from its neighbour or leaving 23:00 to midnight
+    uncovered. Phased to midnight, a day is exactly its own eight blocks.
+
+    It also lines the grid up with the 06:00-20:59 daytime window build_days
+    uses for the icon and rain %: that is now exactly 06-09 through 18-21,
+    where before it cut blocks in half.
+
+    Built for every day so the frontend can show any day's breakdown on tap."""
     blocks = []
-    start = datetime.combine(target_date - timedelta(days=1), datetime.min.time()).replace(hour=23)
+    start = datetime.combine(target_date, datetime.min.time())
     for label in BLOCK_LABELS:
         end = start + timedelta(hours=3)
         hours_in_block = []

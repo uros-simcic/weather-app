@@ -1899,3 +1899,17 @@ obs_time,station,network,variable,value
 2026-08-01T19:00:00,CORMONS,fvg,wind_speed_10m,4.0
 2026-08-01T19:44:00,VIPOLZE,wu,temperature_2m,35
 2026-08-01T19:44:00,VIPOLZE,wu,relative_humidity_2m,42
+2026-08-01T20:30:00,BILJE,arso,temperature_2m,31.1
+2026-08-01T20:30:00,BILJE,arso,relative_humidity_2m,44.0
+2026-08-01T20:30:00,BILJE,arso,wind_speed_10m,4.0
+2026-08-01T20:30:00,BILJE,arso,wind_direction_10m,227.0
+2026-08-01T20:30:00,NOVA_GORICA,arso,temperature_2m,31.9
+2026-08-01T20:30:00,NOVA_GORICA,arso,relative_humidity_2m,39.0
+2026-08-01T20:30:00,NOVA_GORICA,arso,wind_speed_10m,3.0
+2026-08-01T20:30:00,NOVA_GORICA,arso,wind_direction_10m,119.0
+2026-08-01T20:00:00,CAPRIVA,fvg,temperature_2m,32.1
+2026-08-01T20:00:00,CAPRIVA,fvg,wind_speed_10m,6.0
+2026-08-01T20:00:00,CORMONS,fvg,temperature_2m,33.5
+2026-08-01T20:00:00,CORMONS,fvg,wind_speed_10m,1.0
+2026-08-01T20:44:00,VIPOLZE,wu,temperature_2m,31
+2026-08-01T20:44:00,VIPOLZE,wu,relative_humidity_2m,55

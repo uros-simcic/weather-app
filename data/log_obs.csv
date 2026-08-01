@@ -1731,3 +1731,11 @@ obs_time,station,network,variable,value
 2026-08-01T01:00:00,CORMONS,fvg,wind_speed_10m,2.0
 2026-08-01T01:44:00,VIPOLZE,wu,temperature_2m,23
 2026-08-01T01:44:00,VIPOLZE,wu,relative_humidity_2m,79
+2026-08-01T03:10:00,NOVA_GORICA,arso,temperature_2m,23.9
+2026-08-01T03:10:00,NOVA_GORICA,arso,relative_humidity_2m,61.0
+2026-08-01T03:10:00,NOVA_GORICA,arso,wind_speed_10m,3.0
+2026-08-01T03:10:00,NOVA_GORICA,arso,wind_direction_10m,103.0
+2026-08-01T03:00:00,CAPRIVA,fvg,temperature_2m,23.5
+2026-08-01T03:00:00,CAPRIVA,fvg,wind_speed_10m,4.0
+2026-08-01T03:19:00,VIPOLZE,wu,temperature_2m,21
+2026-08-01T03:19:00,VIPOLZE,wu,relative_humidity_2m,85

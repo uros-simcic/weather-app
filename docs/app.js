@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=15';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=16';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -11,7 +11,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const DAY_NAMES = ['NED', 'PON', 'TOR', 'SRE', 'ČET', 'PET', 'SOB'];
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '15';
+const ICONS_VERSION = '16';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.

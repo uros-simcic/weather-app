@@ -59,6 +59,24 @@ FVG's stations (Capriva, Cormons) carry a 24-hour no-republish clause on
 real-time data. They are logged for **training and backtesting only and never
 appear in the live figure**.
 
+**Rain is collected but not yet used.** Nothing reads these; they accumulate so
+that a correction can be fitted later, which is impossible without an archive of
+what actually fell. Four distinct quantities over four windows, kept under
+separate names because collapsing them would destroy the archive's usefulness:
+
+| Variable | Source | Meaning |
+|---|---|---|
+| `precipitation_10min` | ARSO `tp_acc` | mm in the 10-minute interval, recorded only when the entry's own `interval` field says 10 |
+| `precipitation_12h` | ARSO `tp_12h_acc` | mm in the rolling 12 hours |
+| `precipitation_rate` | Vipolže `precipRate` | instantaneous mm/h |
+| `precipitation_today` | Vipolže `precipTotal` | mm since local midnight |
+
+ARSO's `tp_1h_acc` and `tp_24h_acc` exist in the schema but are always empty, so
+no hourly station total is available from that source. Negative readings and
+anything above 200 mm are dropped rather than logged — a frozen or un-zeroed
+tipping bucket produces both, and a wrong number in the archive is worse than a
+missing one, because a correction fitted later cannot tell them apart.
+
 ### §4.4 Cross-check links
 
 Six buttons, in this order and casing:

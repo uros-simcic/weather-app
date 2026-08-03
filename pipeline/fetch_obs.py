@@ -106,6 +106,15 @@ def fetch_arso_stations(now_dt):
             "relative_humidity_2m": _to_float(entry.get("rh")),
             "wind_speed_10m": _to_float(entry.get("ff_val")),
             "wind_direction_10m": _to_float(entry.get("dd_val")),
+            # Rain, collected but not yet used anywhere — see the note in
+            # build_log_rows. ARSO publishes tp_acc over the interval named in
+            # the same entry (always 10 min so far) and a rolling 12h total;
+            # tp_1h_acc and tp_24h_acc exist in the schema but come back empty.
+            # tp_acc is only recorded when the interval really is 10 minutes,
+            # so the variable name can never be a lie about the window.
+            "precipitation_10min": (_to_precip(entry.get("tp_acc"))
+                                    if str(entry.get("interval", "")).strip() == "10" else None),
+            "precipitation_12h": _to_precip(entry.get("tp_12h_acc")),
         }
     return out
 
@@ -113,10 +122,10 @@ def fetch_arso_stations(now_dt):
 def fetch_vipolze():
     """The Vipolže personal weather station, the only one inside Brda.
 
-    Logged for cross-checking against the valley stations 9-14km away — it does
-    not feed zdaj, which stays ARSO-only. Temperature and humidity only; it
-    reports no usable wind and UV comes back null. Any failure returns nothing
-    rather than a partial reading, never guessed (§7.10).
+    Joins the ARSO pair in the zdaj median for temperature and humidity. It
+    reports no usable wind and UV comes back null, so those stay ARSO-only.
+    Its rain gauge is logged but not yet used anywhere. Any failure returns
+    nothing rather than a partial reading, never guessed (§7.10).
     """
     try:
         resp = requests.get(WU_PWS_URL, params={
@@ -151,6 +160,14 @@ def fetch_vipolze():
         "obs_time": obs_time,
         "temperature_2m": metric.get("temp"),
         "relative_humidity_2m": obs.get("humidity"),
+        # Rain, collected but not yet used. This is the only gauge inside Brda,
+        # and rain is the most local of all the variables — the valley stations
+        # can be dry while the hills are not. precipRate is an instantaneous
+        # mm/h, precipTotal the running total since local midnight; they are
+        # different quantities from ARSO's accumulations and from each other,
+        # so each keeps its own name rather than being folded together.
+        "precipitation_rate": _to_precip(metric.get("precipRate")),
+        "precipitation_today": _to_precip(metric.get("precipTotal")),
     }
     if readings["temperature_2m"] is None and readings["relative_humidity_2m"] is None:
         return {}
@@ -204,7 +221,34 @@ def _to_float(v):
         return None
 
 
+# No gauge anywhere reports negative rain, and nothing near Brda has ever put
+# this much down in one reading. A tipping bucket that has iced up or lost its
+# zero reports either, so both are dropped rather than logged — a wrong number
+# in the archive is worse than a missing one, because a correction fitted later
+# cannot tell them apart.
+MAX_PRECIP_MM = 200.0
+
+
+def _to_precip(v):
+    value = _to_float(v)
+    if value is None or value < 0 or value > MAX_PRECIP_MM:
+        return None
+    return value
+
+
 def build_log_rows(now_dt, arso, fvg, pws=None):
+    """Every reading a station gave us, one row per variable.
+
+    Includes the rain variables, which nothing reads yet. Rain is what the
+    forecast is mostly consulted for and the one variable no correction can ever
+    be fitted for without an archive of what actually fell — so the archive has
+    to start accumulating before it can be useful, not after someone decides to
+    use it. They are deliberately kept under distinct names
+    (precipitation_10min, precipitation_12h, precipitation_rate,
+    precipitation_today) rather than one shared "precipitation": they are four
+    different quantities over four different windows, and collapsing them would
+    make the archive unusable for exactly the analysis it exists for.
+    """
     rows = []
     # Logged under its own network name, not "arso": verify.py scores against
     # arso rows only, and quietly folding a personal station into the official

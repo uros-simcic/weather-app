@@ -59,10 +59,8 @@ FVG's stations (Capriva, Cormons) carry a 24-hour no-republish clause on
 real-time data. They are logged for **training and backtesting only and never
 appear in the live figure**.
 
-**Rain is collected but not yet used.** Nothing reads these; they accumulate so
-that a correction can be fitted later, which is impossible without an archive of
-what actually fell. Four distinct quantities over four windows, kept under
-separate names because collapsing them would destroy the archive's usefulness:
+**Rainfall is logged, prepared for future integration.** Nothing reads it yet.
+Four quantities over four windows, kept under separate names:
 
 | Variable | Source | Meaning |
 |---|---|---|

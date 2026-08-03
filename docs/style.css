@@ -67,8 +67,11 @@ body {
   display: flex;
   align-items: center;
   /* 4px bottom + the row's own 4px top padding = the same 8px gap the two
-     button rows have, so the vertical rhythm is uniform down the page. */
-  padding: 4px 4px 4px 4px;
+     button rows have, so the vertical rhythm is uniform down the page.
+     No horizontal padding: it did nothing but hold the glass pills 4px inside
+     the rows, buttons and panels below them — the same inset the rows carried
+     until it was taken off them. */
+  padding: 4px 0;
   /* justify-content: space-between spreads the four panels edge to edge, and
      the gap guarantees they never touch even when the line is at its tightest. */
   justify-content: space-between;

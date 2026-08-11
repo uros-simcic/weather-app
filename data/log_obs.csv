@@ -5351,3 +5351,17 @@ obs_time,station,network,variable,value
 2026-08-11T08:38:00,VIPOLZE,wu,relative_humidity_2m,56
 2026-08-11T08:38:00,VIPOLZE,wu,precipitation_rate,0.0
 2026-08-11T08:38:00,VIPOLZE,wu,precipitation_today,0.0
+2026-08-11T09:50:00,NOVA_GORICA,arso,temperature_2m,28.3
+2026-08-11T09:50:00,NOVA_GORICA,arso,relative_humidity_2m,49.0
+2026-08-11T09:50:00,NOVA_GORICA,arso,wind_speed_10m,2.0
+2026-08-11T09:50:00,NOVA_GORICA,arso,wind_direction_10m,319.0
+2026-08-11T09:50:00,NOVA_GORICA,arso,precipitation_10min,0.0
+2026-08-11T09:50:00,NOVA_GORICA,arso,precipitation_12h,0.0
+2026-08-11T09:00:00,CAPRIVA,fvg,temperature_2m,28.1
+2026-08-11T09:00:00,CAPRIVA,fvg,wind_speed_10m,2.0
+2026-08-11T09:00:00,CORMONS,fvg,temperature_2m,27.6
+2026-08-11T09:00:00,CORMONS,fvg,wind_speed_10m,3.0
+2026-08-11T09:57:00,VIPOLZE,wu,temperature_2m,30
+2026-08-11T09:57:00,VIPOLZE,wu,relative_humidity_2m,49
+2026-08-11T09:57:00,VIPOLZE,wu,precipitation_rate,0.0
+2026-08-11T09:57:00,VIPOLZE,wu,precipitation_today,0.0

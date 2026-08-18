@@ -6,12 +6,13 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## relative_humidity_2m
 
-- days scored: **24**
-- mean MAE: **12.91**
-- mean range error: **-8.13** (negative = forecast too flat)
+- days scored: **25**
+- mean MAE: **12.56**
+- mean range error: **-7.51** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-08-18 | 6 | 4.055 | 10.2 | 3.0 | 7.2 |
 | 2026-08-17 | 7 | 16.519 | 23.0 | 23.0 | -0.0 |
 | 2026-08-16 | 6 | 15.552 | 10.19 | 25.0 | -14.81 |
 | 2026-08-15 | 7 | 29.99 | 5.62 | 14.0 | -8.38 |
@@ -39,12 +40,13 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## temperature_2m
 
-- days scored: **24**
-- mean MAE: **1.81**
-- mean range error: **-1.25** (negative = forecast too flat)
+- days scored: **25**
+- mean MAE: **1.82**
+- mean range error: **-1.23** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-08-18 | 6 | 1.937 | 1.82 | 2.5 | -0.68 |
 | 2026-08-17 | 7 | 1.281 | 3.68 | 3.0 | 0.68 |
 | 2026-08-16 | 6 | 2.608 | 3.63 | 5.3 | -1.67 |
 | 2026-08-15 | 7 | 4.761 | 3.21 | 3.0 | 0.21 |
@@ -72,12 +74,13 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## wind_speed_10m
 
-- days scored: **24**
-- mean MAE: **3.12**
-- mean range error: **-3.60** (negative = forecast too flat)
+- days scored: **25**
+- mean MAE: **3.03**
+- mean range error: **-3.47** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-08-18 | 6 | 0.78 | 2.56 | 3.0 | -0.44 |
 | 2026-08-17 | 6 | 2.407 | 2.57 | 8.0 | -5.43 |
 | 2026-08-16 | 6 | 0.705 | 0.98 | 2.0 | -1.02 |
 | 2026-08-15 | 6 | 6.268 | 1.26 | 4.0 | -2.74 |

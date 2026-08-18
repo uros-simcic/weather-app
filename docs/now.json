@@ -1,11 +1,11 @@
 {
-  "measured_at": "2026-08-18T07:48:00+02:00",
-  "t": 17.7,
-  "rh": 82.0,
-  "wind_kmh": 2.0,
-  "wind_dir": 136.0,
-  "icon": "cloud",
-  "uv": 0,
+  "measured_at": "2026-08-18T08:51:00+02:00",
+  "t": 20.8,
+  "rh": 72.0,
+  "wind_kmh": 6.0,
+  "wind_dir": 184.0,
+  "icon": "sun",
+  "uv": 1,
   "source": "stations",
   "stations_used": [
     "BILJE",

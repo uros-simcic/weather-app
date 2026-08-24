@@ -1,10 +1,10 @@
 {
-  "measured_at": "2026-08-24T20:13:00+02:00",
-  "t": 27.0,
-  "rh": 53.0,
-  "wind_kmh": 3.0,
-  "wind_dir": 315.0,
-  "icon": "sun",
+  "measured_at": "2026-08-24T21:04:00+02:00",
+  "t": 24.1,
+  "rh": 61.0,
+  "wind_kmh": 4.5,
+  "wind_dir": 105.0,
+  "icon": "partly",
   "uv": 0,
   "source": "stations",
   "stations_used": [

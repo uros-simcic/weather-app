@@ -14527,3 +14527,17 @@ obs_time,station,network,variable,value
 2026-08-25T17:07:00,VIPOLZE,wu,relative_humidity_2m,94
 2026-08-25T17:07:00,VIPOLZE,wu,precipitation_rate,0.0
 2026-08-25T17:07:00,VIPOLZE,wu,precipitation_today,9.4
+2026-08-25T17:50:00,BILJE,arso,temperature_2m,21.2
+2026-08-25T17:50:00,BILJE,arso,relative_humidity_2m,95.0
+2026-08-25T17:50:00,BILJE,arso,wind_speed_10m,8.0
+2026-08-25T17:50:00,BILJE,arso,wind_direction_10m,66.0
+2026-08-25T17:50:00,BILJE,arso,precipitation_10min,0.06
+2026-08-25T17:50:00,BILJE,arso,precipitation_12h,10.57
+2026-08-25T17:00:00,CAPRIVA,fvg,temperature_2m,21.7
+2026-08-25T17:00:00,CAPRIVA,fvg,wind_speed_10m,9.0
+2026-08-25T17:00:00,CORMONS,fvg,temperature_2m,21.6
+2026-08-25T17:00:00,CORMONS,fvg,wind_speed_10m,3.0
+2026-08-25T18:01:00,VIPOLZE,wu,temperature_2m,23
+2026-08-25T18:01:00,VIPOLZE,wu,relative_humidity_2m,85
+2026-08-25T18:01:00,VIPOLZE,wu,precipitation_rate,0.0
+2026-08-25T18:01:00,VIPOLZE,wu,precipitation_today,9.91

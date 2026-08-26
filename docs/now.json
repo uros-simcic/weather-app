@@ -1,7 +1,7 @@
 {
-  "measured_at": "2026-08-26T18:50:00+02:00",
-  "t": 29.0,
-  "rh": 62,
+  "measured_at": "2026-08-26T20:10:00+02:00",
+  "t": 26,
+  "rh": 74,
   "wind_kmh": null,
   "wind_dir": null,
   "icon": "cloud",

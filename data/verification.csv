@@ -95,3 +95,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-08-25,temperature_2m,7,0.321,2.28,3.0,-0.72
 2026-08-25,relative_humidity_2m,7,9.539,24.08,23.0,1.08
 2026-08-25,wind_speed_10m,6,3.832,2.77,10.0,-7.23
+2026-08-26,temperature_2m,7,0.677,1.98,1.8,0.18
+2026-08-26,relative_humidity_2m,7,1.127,2.2,1.0,1.2
+2026-08-26,wind_speed_10m,5,2.876,2.61,2.0,0.61

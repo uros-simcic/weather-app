@@ -1,11 +1,11 @@
 {
-  "measured_at": "2026-08-26T17:55:00+02:00",
-  "t": 31.0,
-  "rh": 50,
+  "measured_at": "2026-08-26T18:50:00+02:00",
+  "t": 29.0,
+  "rh": 62,
   "wind_kmh": null,
   "wind_dir": null,
-  "icon": "sun",
-  "uv": 3,
+  "icon": "cloud",
+  "uv": 2,
   "source": "stations",
   "stations_used": [
     "VIPOLZE"

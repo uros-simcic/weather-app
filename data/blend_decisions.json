@@ -1,38 +1,38 @@
 {
   "temperature_2m|unknown-horizon": "lightgbm_blend",
   "temperature_2m|member_mae": {
-    "italia_meteo_arpae_icon_2i": 1.0166,
-    "icon_d2": 1.0945,
-    "icon_eu": 0.8843,
-    "ecmwf_ifs025": 0.5431,
-    "gfs_seamless": 1.1274,
-    "geosphere_arome_austria": 1.4597
+    "italia_meteo_arpae_icon_2i": 1.0106,
+    "icon_d2": 1.0786,
+    "icon_eu": 0.8754,
+    "ecmwf_ifs025": 0.5214,
+    "gfs_seamless": 1.1143,
+    "geosphere_arome_austria": 1.5639
   },
   "relative_humidity_2m|unknown-horizon": "lightgbm_blend",
   "relative_humidity_2m|member_mae": {
-    "italia_meteo_arpae_icon_2i": 7.4744,
-    "icon_d2": 7.4926,
-    "icon_eu": 5.8745,
-    "ecmwf_ifs025": 3.4169,
-    "gfs_seamless": 7.6459,
-    "geosphere_arome_austria": 8.823
+    "italia_meteo_arpae_icon_2i": 7.5686,
+    "icon_d2": 7.5551,
+    "icon_eu": 5.965,
+    "ecmwf_ifs025": 3.2936,
+    "gfs_seamless": 7.636,
+    "geosphere_arome_austria": 9.9636
   },
   "wind_speed_10m|unknown-horizon": "lightgbm_blend",
   "wind_speed_10m|member_mae": {
-    "italia_meteo_arpae_icon_2i": 3.0386,
-    "icon_d2": 2.8649,
-    "icon_eu": 3.1925,
-    "ecmwf_ifs025": 2.0644,
-    "gfs_seamless": 2.9873,
-    "geosphere_arome_austria": 2.9139
+    "italia_meteo_arpae_icon_2i": 3.0249,
+    "icon_d2": 2.8309,
+    "icon_eu": 3.188,
+    "ecmwf_ifs025": 2.0057,
+    "gfs_seamless": 2.9608,
+    "geosphere_arome_austria": 2.8552
   },
   "precipitation|unknown-horizon": "lightgbm_blend",
   "precipitation|member_mae": {
-    "italia_meteo_arpae_icon_2i": 0.2299,
-    "icon_d2": 0.2113,
-    "icon_eu": 0.1816,
-    "ecmwf_ifs025": 0.1414,
-    "gfs_seamless": 0.1945,
-    "geosphere_arome_austria": 0.1154
+    "italia_meteo_arpae_icon_2i": 0.2296,
+    "icon_d2": 0.2061,
+    "icon_eu": 0.179,
+    "ecmwf_ifs025": 0.1333,
+    "gfs_seamless": 0.1988,
+    "geosphere_arome_austria": 0.2449
   }
 }

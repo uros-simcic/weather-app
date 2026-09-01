@@ -1,13 +1,14 @@
 {
-  "measured_at": "2026-09-01T21:27:00+02:00",
-  "t": 24.9,
-  "rh": 58.5,
-  "wind_kmh": 2.0,
-  "wind_dir": 142.0,
-  "icon": "cloud",
+  "measured_at": "2026-09-01T23:22:00+02:00",
+  "t": 23.2,
+  "rh": 53,
+  "wind_kmh": 4.0,
+  "wind_dir": 70.0,
+  "icon": "partly",
   "uv": 0,
   "source": "stations",
   "stations_used": [
+    "BILJE",
     "NOVA_GORICA",
     "VIPOLZE"
   ],

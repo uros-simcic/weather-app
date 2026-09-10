@@ -140,3 +140,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-09-09,temperature_2m,6,1.778,1.9,4.2,-2.3
 2026-09-09,relative_humidity_2m,6,6.973,11.21,14.0,-2.79
 2026-09-09,wind_speed_10m,5,4.81,4.66,26.0,-21.34
+2026-09-10,temperature_2m,5,0.91,1.79,2.0,-0.21
+2026-09-10,relative_humidity_2m,5,3.2,6.99,3.0,3.99
+2026-09-10,wind_speed_10m,4,4.127,14.07,19.0,-4.93

@@ -146,3 +146,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-09-11,temperature_2m,5,1.924,2.73,1.1,1.63
 2026-09-11,relative_humidity_2m,5,4.874,1.33,13.0,-11.67
 2026-09-11,wind_speed_10m,4,6.842,8.45,6.0,2.45
+2026-09-12,temperature_2m,4,1.258,5.88,9.2,-3.32
+2026-09-12,relative_humidity_2m,4,12.965,17.56,45.0,-27.44
+2026-09-12,wind_speed_10m,4,8.235,4.27,14.0,-9.73

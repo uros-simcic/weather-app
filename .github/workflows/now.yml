@@ -34,9 +34,28 @@ jobs:
           git add data/log_obs.csv docs/now.json
           git diff --cached --quiet || git commit -m "Update now.json"
           pushed=""
-          for i in 1 2 3; do
+          for i in 1 2 3 4 5; do
             if git push; then pushed=1; break; fi
-            git pull --rebase --autostash || git rebase --abort || true
+            # On now.json conflict (forecast.yml pushed a staler obs), keep
+            # this job's files — rebase --theirs is the commit being replayed.
+            # Aborting used to fail every retry when the other job won the race.
+            if git pull --rebase --autostash; then
+              sleep 5
+              continue
+            fi
+            for f in docs/now.json data/log_obs.csv; do
+              if git ls-files -u -- "$f" | grep -q .; then
+                git checkout --theirs -- "$f"
+                git add -- "$f"
+              fi
+            done
+            if git ls-files -u | grep -q .; then
+              echo "unresolved conflicts after keeping this job's obs files:"
+              git ls-files -u
+              git rebase --abort || true
+            else
+              GIT_EDITOR=true git rebase --continue || git rebase --abort || true
+            fi
             sleep 5
           done
-          [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }
+          [ -n "$pushed" ] || { echo "push failed after 5 attempts"; exit 1; }

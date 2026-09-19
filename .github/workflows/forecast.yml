@@ -64,13 +64,30 @@ jobs:
           git add data/ docs/forecast.json docs/now.json
           git diff --cached --quiet || git commit -m "Update forecast data"
           pushed=""
-          for i in 1 2 3; do
+          for i in 1 2 3 4 5; do
             if git push; then pushed=1; break; fi
-            # --autostash so an unstaged leftover can't block the pull, and
-            # abort on conflict so the next attempt starts on a branch rather
-            # than mid-rebase. Without the trailing || true the step's shell
-            # (bash -e) dies here and the loop never reaches attempt 2.
-            git pull --rebase --autostash || git rebase --abort || true
+            # --autostash so an unstaged leftover can't block the pull.
+            # On now.json conflict (now.yml pushed while we trained), keep
+            # master's obs — rebase --ours is the onto-branch, i.e. now.yml's
+            # fresher reading — then continue so forecast.json still ships.
+            # Aborting here used to fail every retry (2026-09-19 #231).
+            if git pull --rebase --autostash; then
+              sleep 5
+              continue
+            fi
+            for f in docs/now.json data/log_obs.csv; do
+              if git ls-files -u -- "$f" | grep -q .; then
+                git checkout --ours -- "$f"
+                git add -- "$f"
+              fi
+            done
+            if git ls-files -u | grep -q .; then
+              echo "unresolved conflicts after keeping master's obs files:"
+              git ls-files -u
+              git rebase --abort || true
+            else
+              GIT_EDITOR=true git rebase --continue || git rebase --abort || true
+            fi
             sleep 5
           done
-          [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }
+          [ -n "$pushed" ] || { echo "push failed after 5 attempts"; exit 1; }

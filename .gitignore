@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 
+# Open-Meteo 13-month archive (refreshed monthly, restored via Actions cache)
+data/archive_cache/
+
 # macOS
 .DS_Store

@@ -22,6 +22,16 @@ jobs:
           python-version: "3.11"
       - run: pip install -r pipeline/requirements.txt
 
+      - name: Archive cache month
+        id: cache_month
+        run: echo "month=$(date -u +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: data/archive_cache
+          key: openmeteo-archive-${{ steps.cache_month.outputs.month }}
+          restore-keys: |
+            openmeteo-archive-
+
       - run: python3 pipeline/fetch_models.py
       # --latest so this run also refreshes docs/now.json. It was already
       # fetching the observations and throwing the zdaj half away, while
@@ -30,6 +40,10 @@ jobs:
       # now.json and falls back to showing a forecast block as if it were a
       # measurement. Four guaranteed refreshes a day for no extra request.
       - run: python3 pipeline/fetch_obs.py --latest
+
+      # Publish forecast.json before the 13-month archive pull. A 429/502 in
+      # train used to skip blend entirely (2026-09-14, 2026-09-15, #237).
+      - run: python3 pipeline/blend.py
 
       # backtest.py pulls ~13 months of history — spec wants it run once at
       # build, then monthly, not on every daily run.
@@ -42,7 +56,6 @@ jobs:
           fi
 
       - run: python3 pipeline/train.py
-      - run: python3 pipeline/blend.py
 
       # Score yesterday's published forecast against real station readings.
       # Never fail the run over reporting — the forecast itself already shipped.

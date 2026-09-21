@@ -11,6 +11,7 @@ import sys
 from datetime import date, timedelta
 
 import pandas as pd
+import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 from backtest import BACKFILL_MONTHS, feature_columns, fit_blend_model, to_wide
@@ -52,7 +53,11 @@ def main():
     end = date.today()
     start = date(end.year, end.month, 1) - timedelta(days=BACKFILL_MONTHS * 31)
     start = max(start, date.fromisoformat(TRAINING_HISTORY_START))
-    rows = build_training_rows(start.isoformat(), end.isoformat())
+    try:
+        rows = build_training_rows(start.isoformat(), end.isoformat())
+    except requests.RequestException as e:
+        print(f"train: archive fetch failed, keeping existing models ({e})", file=sys.stderr)
+        return
     wide = to_wide(rows)
     if wide.empty:
         print("train: no training data available, aborting", file=sys.stderr)

@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
+from om_http import get_json
 from config import (
     ARSO_FORECAST_TOWN, ARSO_FORECAST_URL, FVG_FORECAST_URL_TEMPLATE,
     LAT, LON, ELEVATION, TIMEZONE, OPEN_METEO_MODELS, OPEN_METEO_DAILY_VARS,
@@ -119,9 +120,7 @@ def fetch_open_meteo(run_time, run_dt):
         "daily": ",".join(OPEN_METEO_DAILY_VARS),
     }
     try:
-        resp = requests.get(OPEN_METEO_URL, params=params, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
+        data = get_json(OPEN_METEO_URL, params, timeouts=(30, 60, 90))
     except (requests.RequestException, ValueError) as e:
         print(f"open-meteo: request failed, skipping run ({e})", file=sys.stderr)
         return []

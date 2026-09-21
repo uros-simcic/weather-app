@@ -9,9 +9,8 @@ import sys
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import requests
-
 sys.path.insert(0, os.path.dirname(__file__))
+from om_http import get_json
 from backtest import feature_columns
 from config import (
     ELEVATION, LAT, LON, OPEN_METEO_DAILY_VARS, OPEN_METEO_HOURLY_VARS,
@@ -131,18 +130,10 @@ def fetch_open_meteo(now_dt):
         "hourly": ",".join(OPEN_METEO_HOURLY_VARS),
         "daily": ",".join(OPEN_METEO_DAILY_VARS),
     }
-    # Retry on transient timeouts: this single call is the whole forecast, so
-    # one blip must not fail the daily run and leave forecast.json stale.
-    last_error = None
-    for timeout in (30, 60, 90):
-        try:
-            resp = requests.get(OPEN_METEO_URL, params=params, timeout=timeout)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as e:
-            last_error = e
-            print(f"open-meteo: attempt failed ({e})", file=sys.stderr)
-    raise last_error
+    # One call is the whole published forecast. get_json sleeps on 429/5xx
+    # (forecast #237 retried only by raising the timeout, which does nothing).
+    data = get_json(OPEN_METEO_URL, params, timeouts=(30, 60, 90))
+    return data
 
 
 def load_models():

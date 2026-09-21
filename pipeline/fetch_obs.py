@@ -26,6 +26,7 @@ from config import (
     WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL, WU_PWS_WEB_KEY,
 )
 from features import wmo_to_icon
+from om_http import get_json
 from safe_write import write_json
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
@@ -300,9 +301,8 @@ def fetch_model_hourly(now_dt):
         "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,uv_index",
     }
     try:
-        resp = requests.get(OPEN_METEO_URL, params=params, timeout=20)
-        resp.raise_for_status()
-        return resp.json().get("hourly")
+        data = get_json(OPEN_METEO_URL, params, timeouts=(20, 30, 45))
+        return data.get("hourly")
     except (requests.RequestException, ValueError) as e:
         print(f"model hourly: request failed ({e})", file=sys.stderr)
         return None

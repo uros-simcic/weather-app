@@ -13,36 +13,66 @@ Historical rows get lead_hours=None ("unknown horizon"); real per-run lead
 time only exists once fetch_models.py's live logs accumulate, and train.py
 combines both sources — see backtest_report.md's caveat.
 """
+import json
 import math
+import os
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime
 
 import requests
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 from config import (
-    ELEVATION, LAT, LON, OPEN_METEO_HISTORICAL_FORECAST_URL,
+    LAT, LON, OPEN_METEO_HISTORICAL_FORECAST_URL,
     OPEN_METEO_HISTORICAL_WEATHER_URL, OPEN_METEO_MODELS, TIMEZONE,
 )
+from om_http import get_json
 
 TRAIN_VARS = ["temperature_2m", "relative_humidity_2m", "wind_speed_10m", "precipitation"]
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "archive_cache")
+ARCHIVE_TIMEOUTS = (60, 120, 180)
 
 
+def _cache_month():
+    return date.today().strftime("%Y-%m")
 
 
-def _get_with_retry(url, params):
-    # A ~13-month hourly pull is a large response; the API has been observed
-    # to occasionally exceed a 60s timeout — retry with more headroom before
-    # giving up.
-    last_error = None
-    for timeout in (60, 120, 180):
-        try:
-            resp = requests.get(url, params=params, timeout=timeout)
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as e:
-            last_error = e
-    raise last_error
+def _cache_path(name):
+    return os.path.join(CACHE_DIR, name)
+
+
+def _load_cache(name):
+    path = _cache_path(name)
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"features: cache {name} unreadable ({e})", file=sys.stderr)
+        return None
+
+
+def _save_cache(name, data):
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    path = _cache_path(name)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f)
+    os.replace(tmp, path)
+
+
+def _cache_is_current(start_date):
+    meta = _load_cache("meta.json") or {}
+    return (
+        meta.get("month") == _cache_month()
+        and meta.get("start_date") == start_date
+        and _load_cache("truth.json") is not None
+    )
+
+
+def _get_archive(url, params):
+    return get_json(url, params, timeouts=ARCHIVE_TIMEOUTS)
 
 
 def fetch_model_history(model, start_date, end_date):
@@ -51,7 +81,7 @@ def fetch_model_history(model, start_date, end_date):
         "start_date": start_date, "end_date": end_date,
         "hourly": ",".join(TRAIN_VARS), "models": model,
     }
-    return _get_with_retry(OPEN_METEO_HISTORICAL_FORECAST_URL, params)
+    return _get_archive(OPEN_METEO_HISTORICAL_FORECAST_URL, params)
 
 
 def fetch_truth_history(start_date, end_date):
@@ -60,22 +90,57 @@ def fetch_truth_history(start_date, end_date):
         "start_date": start_date, "end_date": end_date,
         "hourly": ",".join(TRAIN_VARS),
     }
-    return _get_with_retry(OPEN_METEO_HISTORICAL_WEATHER_URL, params)
+    return _get_archive(OPEN_METEO_HISTORICAL_WEATHER_URL, params)
+
+
+def _truth_payload(start_date, end_date):
+    """Current-month cache, else fetch and store, else stale cache, else raise."""
+    cached = _load_cache("truth.json")
+    if _cache_is_current(start_date) and cached is not None:
+        print("features: truth from archive cache", file=sys.stderr)
+        return cached, False
+    try:
+        data = fetch_truth_history(start_date, end_date)
+        _save_cache("truth.json", data)
+        return data, True
+    except requests.RequestException as e:
+        if cached is not None:
+            print(f"features: truth fetch failed, using stale cache ({e})", file=sys.stderr)
+            return cached, False
+        raise
+
+
+def _model_payload(model, start_date, end_date, allow_cache):
+    name = f"{model}.json"
+    cached = _load_cache(name)
+    if allow_cache and cached is not None:
+        return cached, False
+    try:
+        data = fetch_model_history(model, start_date, end_date)
+        _save_cache(name, data)
+        return data, True
+    except requests.RequestException as e:
+        if cached is not None:
+            print(f"features: {model} fetch failed, using stale cache ({e})", file=sys.stderr)
+            return cached, False
+        print(f"features: {model} history failed, skipping ({e})", file=sys.stderr)
+        return None, False
 
 
 def build_training_rows(start_date, end_date):
     """One row per (hour, member, variable) with truth + engineered features."""
-    truth = fetch_truth_history(start_date, end_date)
+    truth, truth_fresh = _truth_payload(start_date, end_date)
     truth_hourly = truth.get("hourly", {})
     times = truth_hourly.get("time", [])
     truth_by_var = {var: dict(zip(times, truth_hourly.get(var, []))) for var in TRAIN_VARS}
+    allow_model_cache = not truth_fresh
+    any_fresh = truth_fresh
 
     rows = []
     for model in OPEN_METEO_MODELS:
-        try:
-            data = fetch_model_history(model, start_date, end_date)
-        except requests.RequestException as e:
-            print(f"features: {model} history failed, skipping ({e})", file=sys.stderr)
+        data, fresh = _model_payload(model, start_date, end_date, allow_model_cache)
+        any_fresh = any_fresh or fresh
+        if not data:
             continue
         hourly = data.get("hourly", {})
         m_times = hourly.get("time", [])
@@ -99,6 +164,12 @@ def build_training_rows(start_date, end_date):
                     "doy_cos": math.cos(2 * math.pi * dt.timetuple().tm_yday / 365),
                     "elevation_delta": 0,  # at-target grid point; live station logs add diversity
                 })
+    if any_fresh:
+        _save_cache("meta.json", {
+            "month": _cache_month(),
+            "start_date": start_date,
+            "end_date": end_date,
+        })
     return rows
 
 

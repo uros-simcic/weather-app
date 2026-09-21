@@ -11,6 +11,7 @@ import sys
 from datetime import date, timedelta
 
 import pandas as pd
+import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import OPEN_METEO_MODELS, TRAINING_HISTORY_START
@@ -206,7 +207,11 @@ def main():
     start = max(start, date.fromisoformat(TRAINING_HISTORY_START))
     print(f"backtest: pulling history {start} to {end}")
 
-    rows = build_training_rows(start.isoformat(), end.isoformat())
+    try:
+        rows = build_training_rows(start.isoformat(), end.isoformat())
+    except requests.RequestException as e:
+        print(f"backtest: archive fetch failed, keeping existing decisions ({e})", file=sys.stderr)
+        return
     print(f"backtest: {len(rows)} raw rows")
     wide = to_wide(rows)
     if wide.empty:

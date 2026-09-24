@@ -20415,3 +20415,11 @@ obs_time,station,network,variable,value
 2026-09-24T17:26:00,VIPOLZE,wu,relative_humidity_2m,73
 2026-09-24T17:26:00,VIPOLZE,wu,precipitation_rate,0.0
 2026-09-24T17:26:00,VIPOLZE,wu,precipitation_today,0.0
+2026-09-24T20:00:00,CAPRIVA,fvg,temperature_2m,15.8
+2026-09-24T20:00:00,CAPRIVA,fvg,wind_speed_10m,4.0
+2026-09-24T20:00:00,CORMONS,fvg,temperature_2m,17.3
+2026-09-24T20:00:00,CORMONS,fvg,wind_speed_10m,3.0
+2026-09-24T20:30:00,VIPOLZE,wu,temperature_2m,16
+2026-09-24T20:30:00,VIPOLZE,wu,relative_humidity_2m,87
+2026-09-24T20:30:00,VIPOLZE,wu,precipitation_rate,0.0
+2026-09-24T20:30:00,VIPOLZE,wu,precipitation_today,0.0

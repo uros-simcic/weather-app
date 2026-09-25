@@ -6,12 +6,13 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## relative_humidity_2m
 
-- days scored: **30**
-- mean MAE: **8.06**
-- mean range error: **-11.85** (negative = forecast too flat)
+- days scored: **31**
+- mean MAE: **8.24**
+- mean range error: **-11.25** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-09-25 | 5 | 13.496 | 37.51 | 31.0 | 6.51 |
 | 2026-09-24 | 4 | 7.92 | 19.29 | 31.0 | -11.71 |
 | 2026-09-23 | 4 | 10.813 | 17.94 | 39.0 | -21.06 |
 | 2026-09-22 | 5 | 7.99 | 22.13 | 36.0 | -13.87 |
@@ -41,16 +42,16 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 | 2026-08-29 | 6 | 9.613 | 38.07 | 51.0 | -12.93 |
 | 2026-08-28 | 5 | 7.232 | 27.51 | 45.0 | -17.49 |
 | 2026-08-27 | 4 | 5.155 | 27.95 | 35.0 | -7.05 |
-| 2026-08-26 | 7 | 1.127 | 2.2 | 1.0 | 1.2 |
 
 ## temperature_2m
 
-- days scored: **30**
-- mean MAE: **1.63**
-- mean range error: **-2.50** (negative = forecast too flat)
+- days scored: **31**
+- mean MAE: **1.66**
+- mean range error: **-2.44** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-09-25 | 5 | 2.81 | 9.6 | 10.3 | -0.7 |
 | 2026-09-24 | 4 | 0.922 | 7.48 | 9.4 | -1.92 |
 | 2026-09-23 | 4 | 0.695 | 6.66 | 7.0 | -0.34 |
 | 2026-09-22 | 5 | 2.012 | 6.51 | 7.9 | -1.39 |
@@ -80,16 +81,16 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 | 2026-08-29 | 6 | 2.068 | 6.48 | 10.5 | -4.02 |
 | 2026-08-28 | 5 | 0.918 | 7.96 | 10.5 | -2.54 |
 | 2026-08-27 | 4 | 1.245 | 9.66 | 12.5 | -2.84 |
-| 2026-08-26 | 7 | 0.677 | 1.98 | 1.8 | 0.18 |
 
 ## wind_speed_10m
 
-- days scored: **30**
+- days scored: **31**
 - mean MAE: **4.00**
-- mean range error: **-1.88** (negative = forecast too flat)
+- mean range error: **-1.74** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-09-25 | 5 | 3.872 | 7.57 | 5.0 | 2.57 |
 | 2026-09-24 | 4 | 1.192 | 3.84 | 1.0 | 2.84 |
 | 2026-09-23 | 5 | 3.388 | 5.86 | 9.0 | -3.14 |
 | 2026-09-22 | 5 | 6.664 | 10.32 | 16.0 | -5.68 |
@@ -119,4 +120,3 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 | 2026-08-29 | 6 | 3.523 | 4.9 | 10.0 | -5.1 |
 | 2026-08-28 | 4 | 0.575 | 3.64 | 4.0 | -0.36 |
 | 2026-08-27 | 4 | 1.498 | 1.71 | 4.0 | -2.29 |
-| 2026-08-26 | 5 | 2.876 | 2.61 | 2.0 | 0.61 |

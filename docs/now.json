@@ -1,13 +1,14 @@
 {
-  "measured_at": "2026-09-27T03:46:00+02:00",
-  "t": 13.0,
-  "rh": 82,
-  "wind_kmh": null,
-  "wind_dir": null,
+  "measured_at": "2026-09-27T09:19:00+02:00",
+  "t": 17.1,
+  "rh": 66.5,
+  "wind_kmh": 1.0,
+  "wind_dir": 233.0,
   "icon": "sun",
-  "uv": 0,
+  "uv": 1,
   "source": "stations",
   "stations_used": [
+    "NOVA_GORICA",
     "VIPOLZE"
   ],
   "hail": {

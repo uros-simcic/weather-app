@@ -12,22 +12,22 @@ Every row below is `unknown-horizon`: Open-Meteo's historical archive returns on
 
 | lead_bucket | n | mae_italia_meteo_arpae_icon_2i | mae_icon_d2 | mae_icon_eu | mae_ecmwf_ifs025 | mae_gfs_seamless | mae_geosphere_arome_austria | mae_equal_weight_mean | mae_weighted_mean_p1 | mae_weighted_mean_p2 | mae_weighted_mean_p3 | mae_lightgbm_blend | ships |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| unknown-horizon | 2040 | 1.299 | 1.191 | 1.037 | 0.589 | 1.697 | 1.579 | 0.81 | 0.745 | 0.671 | 0.612 | 0.567 | lightgbm_blend |
+| unknown-horizon | 2040 | 1.179 | 1.162 | 1.051 | 0.542 | 1.527 | 1.703 | 0.775 | 0.699 | 0.621 | 0.564 | 0.494 | lightgbm_blend |
 
 ## relative_humidity_2m
 
 | lead_bucket | n | mae_italia_meteo_arpae_icon_2i | mae_icon_d2 | mae_icon_eu | mae_ecmwf_ifs025 | mae_gfs_seamless | mae_geosphere_arome_austria | mae_equal_weight_mean | mae_weighted_mean_p1 | mae_weighted_mean_p2 | mae_weighted_mean_p3 | mae_lightgbm_blend | ships |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| unknown-horizon | 2040 | 9.524 | 8.302 | 7.134 | 3.955 | 8.469 | 9.457 | 5.715 | 5.171 | 4.573 | 4.161 | 3.67 | lightgbm_blend |
+| unknown-horizon | 2040 | 8.96 | 7.989 | 6.894 | 3.472 | 7.451 | 10.064 | 5.395 | 4.805 | 4.179 | 3.744 | 3.501 | lightgbm_blend |
 
 ## wind_speed_10m
 
 | lead_bucket | n | mae_italia_meteo_arpae_icon_2i | mae_icon_d2 | mae_icon_eu | mae_ecmwf_ifs025 | mae_gfs_seamless | mae_geosphere_arome_austria | mae_equal_weight_mean | mae_weighted_mean_p1 | mae_weighted_mean_p2 | mae_weighted_mean_p3 | mae_lightgbm_blend | ships |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| unknown-horizon | 2040 | 3.008 | 2.883 | 2.877 | 1.906 | 3.16 | 3.356 | 2.109 | 2.018 | 1.918 | 1.818 | 1.62 | lightgbm_blend |
+| unknown-horizon | 2040 | 2.961 | 2.723 | 3.008 | 2.026 | 3.073 | 3.11 | 2.009 | 1.903 | 1.788 | 1.683 | 1.597 | lightgbm_blend |
 
 ## precipitation
 
 | lead_bucket | n | mae_italia_meteo_arpae_icon_2i | mae_icon_d2 | mae_icon_eu | mae_ecmwf_ifs025 | mae_gfs_seamless | mae_geosphere_arome_austria | mae_equal_weight_mean | mae_weighted_mean_p1 | mae_weighted_mean_p2 | mae_weighted_mean_p3 | mae_lightgbm_blend | ships |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| unknown-horizon | 2040 | 0.199 | 0.175 | 0.124 | 0.077 | 0.152 | 0.163 | 0.122 | 0.115 | 0.109 | 0.102 | 0.098 | lightgbm_blend |
+| unknown-horizon | 2040 | 0.246 | 0.211 | 0.188 | 0.088 | 0.212 | 0.228 | 0.148 | 0.139 | 0.129 | 0.12 | 0.103 | lightgbm_blend |

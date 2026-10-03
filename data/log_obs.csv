@@ -21809,3 +21809,7 @@ obs_time,station,network,variable,value
 2026-10-03T16:48:00,VIPOLZE,wu,relative_humidity_2m,31
 2026-10-03T16:48:00,VIPOLZE,wu,precipitation_rate,0.0
 2026-10-03T16:48:00,VIPOLZE,wu,precipitation_today,0.0
+2026-10-03T16:49:00,VIPOLZE,wu,temperature_2m,27
+2026-10-03T16:49:00,VIPOLZE,wu,relative_humidity_2m,31
+2026-10-03T16:49:00,VIPOLZE,wu,precipitation_rate,0.0
+2026-10-03T16:49:00,VIPOLZE,wu,precipitation_today,0.0

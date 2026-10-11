@@ -233,3 +233,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-10-10,temperature_2m,6,1.598,8.09,9.7,-1.61
 2026-10-10,relative_humidity_2m,6,7.225,22.81,27.0,-4.19
 2026-10-10,wind_speed_10m,5,4.31,7.05,5.0,2.05
+2026-10-11,temperature_2m,4,0.94,5.84,8.0,-2.16
+2026-10-11,relative_humidity_2m,4,4.303,30.37,34.0,-3.63
+2026-10-11,wind_speed_10m,4,3.375,4.76,3.0,1.76

@@ -1,11 +1,11 @@
 {
-  "measured_at": "2026-10-17T06:58:00+02:00",
-  "t": 8.0,
-  "rh": 96.0,
+  "measured_at": "2026-10-17T10:44:00+02:00",
+  "t": 14.8,
+  "rh": 75,
   "wind_kmh": 4.0,
-  "wind_dir": 102.0,
+  "wind_dir": 93.0,
   "icon": "cloud",
-  "uv": 0,
+  "uv": 1,
   "source": "stations",
   "stations_used": [
     "BILJE",

@@ -1,9 +1,9 @@
 {
-  "measured_at": "2026-10-21T11:31:00+02:00",
-  "t": 19.0,
-  "rh": 83.0,
+  "measured_at": "2026-10-21T14:23:00+02:00",
+  "t": 19.2,
+  "rh": 89,
   "wind_kmh": 11.0,
-  "wind_dir": 104.0,
+  "wind_dir": 120.0,
   "icon": "storm",
   "uv": 0,
   "source": "stations",

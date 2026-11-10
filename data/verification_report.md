@@ -6,9 +6,9 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## relative_humidity_2m
 
-- days scored: **31**
-- mean MAE: **7.87**
-- mean range error: **-8.09** (negative = forecast too flat)
+- days scored: **30**
+- mean MAE: **7.89**
+- mean range error: **-8.22** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
@@ -45,9 +45,9 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## temperature_2m
 
-- days scored: **31**
-- mean MAE: **1.34**
-- mean range error: **-1.47** (negative = forecast too flat)
+- days scored: **30**
+- mean MAE: **1.33**
+- mean range error: **-1.46** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
@@ -84,9 +84,9 @@ Rolling 30 days, scored against **real ARSO station readings** (Bilje / Nova Gor
 
 ## wind_speed_10m
 
-- days scored: **31**
-- mean MAE: **3.85**
-- mean range error: **-1.86** (negative = forecast too flat)
+- days scored: **30**
+- mean MAE: **3.83**
+- mean range error: **-1.99** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|

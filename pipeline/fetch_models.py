@@ -120,7 +120,10 @@ def fetch_open_meteo(run_time, run_dt):
         "daily": ",".join(OPEN_METEO_DAILY_VARS),
     }
     try:
-        data = get_json(OPEN_METEO_URL, params, timeouts=(30, 60, 90))
+        data = get_json(
+            OPEN_METEO_URL, params, timeouts=(30, 60, 90),
+            snapshot_path=os.environ.get("FORECAST_SNAPSHOT"),
+        )
     except (requests.RequestException, ValueError) as e:
         print(f"open-meteo: request failed, skipping run ({e})", file=sys.stderr)
         return []

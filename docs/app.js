@@ -1,6 +1,6 @@
 // ?v= must match the modulepreload href in index.html exactly, or the browser
 // preloads one URL and then imports another. Bump it with the others there.
-import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=17';
+import { CROSS_CHECK_LINKS, RADAR_ANIM_URL, SATELLITE_ANIM_URL } from './config.js?v=18';
 
 const ICON_WHITELIST = new Set(['sun', 'partly', 'cloud', 'fog', 'rain', 'snow', 'storm']);
 const HAIL_LEVELS = { none: 0, low: 1, medium: 2, high: 3 };
@@ -11,7 +11,7 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const DAY_NAMES = ['NED', 'PON', 'TOR', 'SRE', 'ČET', 'PET', 'SOB'];
 // One number for every cached asset — bump this and the three ?v= in
 // index.html together, so a deploy can never serve new markup with old code.
-const ICONS_VERSION = '17';
+const ICONS_VERSION = '18';
 
 // null = default "today" view (zdaj + today's remaining blocks). Otherwise a
 // day date string ("YYYY-MM-DD") whose hourly blocks fill the top row.
@@ -434,7 +434,7 @@ function renderTopRow(forecast, now) {
   // current-conditions cell rather than fabricating one.
   if (now) {
     row.appendChild(buildCell({
-      label: 'zdaj',
+      label: currentConditionsLabel(now),
       icon: now.icon,
       drops: now.drops || 0,
       pop: null,
@@ -635,6 +635,16 @@ function renderStaleBanner(forecast) {
 // now.json can go missing or fail to parse (e.g. mid-write during a pipeline
 // run); fall back to the current forecast block's values and say so in the
 // console, never silently show stale/wrong data as if it were fresh (§7.8).
+function currentConditionsLabel(now) {
+  if (now.source === 'model_fallback') return 'napoved';
+  const observed = now.observed_at ? new Date(now.observed_at) : null;
+  if (!observed || !Number.isFinite(observed.getTime())) return 'zdaj';
+  const time = observed.toLocaleTimeString('sl-SI', {
+    timeZone: 'Europe/Ljubljana', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  });
+  return 'zdaj · ' + time;
+}
+
 function nowFromForecastFallback(forecast) {
   const nowTs = Date.now();
   // Search every day's blocks, not just the top-level (today's) list — after
@@ -647,6 +657,7 @@ function nowFromForecastFallback(forecast) {
   return {
     t: block.t, rh: block.rh, wind_kmh: block.wind_kmh, wind_dir: block.wind_dir,
     icon: block.icon, uv: block.uv, hail: { status: 'none' },
+    source: 'model_fallback',
   };
 }
 

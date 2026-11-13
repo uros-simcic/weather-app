@@ -23,6 +23,8 @@ jobs:
       - run: pip install -r pipeline/requirements.txt
 
       - run: python3 pipeline/fetch_obs.py --latest
+        env:
+          WU_PWS_API_KEY: ${{ secrets.WU_PWS_API_KEY }}
       - run: python3 pipeline/fetch_hail.py
 
       # Rebase-and-retry push: avoids losing the race against forecast.yml's

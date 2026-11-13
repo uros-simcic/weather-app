@@ -32,6 +32,9 @@ jobs:
           restore-keys: |
             openmeteo-archive-
 
+      - name: Set forecast snapshot path
+        run: echo "FORECAST_SNAPSHOT=$RUNNER_TEMP/weather-forecast-source.json" >> "$GITHUB_ENV"
+
       - run: python3 pipeline/fetch_models.py
       # --latest so this run also refreshes docs/now.json. It was already
       # fetching the observations and throwing the zdaj half away, while
@@ -40,6 +43,8 @@ jobs:
       # now.json and falls back to showing a forecast block as if it were a
       # measurement. Four guaranteed refreshes a day for no extra request.
       - run: python3 pipeline/fetch_obs.py --latest
+        env:
+          WU_PWS_API_KEY: ${{ secrets.WU_PWS_API_KEY }}
 
       # Publish forecast.json before the 13-month archive pull. A 429/502 in
       # train used to skip blend entirely (2026-09-14, 2026-09-15, #237).

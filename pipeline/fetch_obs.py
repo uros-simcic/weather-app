@@ -23,7 +23,7 @@ from config import (
     ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
     ELEVATION, FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS,
     LAT, LON, OPEN_METEO_URL, TIMEZONE,
-    WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL, WU_PWS_WEB_KEY,
+    WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL,
 )
 from features import wmo_to_icon
 from om_http import get_json
@@ -126,15 +126,22 @@ def fetch_vipolze():
     Its rain gauge is logged but not yet used anywhere. Any failure returns
     nothing rather than a partial reading, never guessed (§7.10).
     """
+    api_key = os.environ.get("WU_PWS_API_KEY", "").strip()
+    if not api_key:
+        print("vipolze: WU_PWS_API_KEY is not configured, skipping", file=sys.stderr)
+        return {}
     try:
         resp = requests.get(WU_PWS_URL, params={
             "stationId": WU_PWS_STATION, "format": "json",
-            "units": "m", "apiKey": WU_PWS_WEB_KEY,
+            "units": "m", "apiKey": api_key,
         }, timeout=20)
         resp.raise_for_status()
         observations = resp.json().get("observations") or []
     except (requests.RequestException, ValueError) as e:
-        print(f"vipolze: request failed, skipping ({e})", file=sys.stderr)
+        # Request exceptions can contain the full URL, including the API key.
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        detail = f"HTTP {status}" if status is not None else type(e).__name__
+        print(f"vipolze: request failed, skipping ({detail})", file=sys.stderr)
         return {}
     if not observations:
         print("vipolze: no observation returned", file=sys.stderr)
@@ -354,7 +361,7 @@ def current_hour_icon_uv(now_dt):
     return "cloud", 0
 
 
-def write_now_json(now_dt, zdaj, stations_used, hourly=None):
+def write_now_json(now_dt, zdaj, stations_used, hourly=None, *, observed_at=None):
     icon, uv = None, None
     if hourly is not None:
         code = _model_at(hourly, "weather_code", now_dt)
@@ -377,6 +384,9 @@ def write_now_json(now_dt, zdaj, stations_used, hourly=None):
         # station reading. now_dt stays naive everywhere else: the rest of this
         # file does arithmetic against other naive datetimes.
         "measured_at": now_dt.replace(tzinfo=ZoneInfo(TIMEZONE)).isoformat(),
+        # Keep publication time for compatibility; expose station time separately.
+        "observed_at": (observed_at.replace(tzinfo=ZoneInfo(TIMEZONE)).isoformat()
+                        if stations_used and observed_at is not None else None),
         "t": zdaj.get("temperature_2m"),
         "rh": zdaj.get("relative_humidity_2m"),
         "wind_kmh": zdaj.get("wind_speed_10m"),
@@ -406,7 +416,7 @@ def main():
         zdaj, stations_used, latest_obs_time = compute_zdaj(now_dt, {**arso, **pws})
         hourly = fetch_model_hourly(now_dt)
         zdaj = apply_lag_correction(zdaj, latest_obs_time, now_dt, hourly)
-        write_now_json(now_dt, zdaj, stations_used, hourly)
+        write_now_json(now_dt, zdaj, stations_used, hourly, observed_at=latest_obs_time)
         print(f"zdaj: {zdaj} from {stations_used} (obs {latest_obs_time})")
 
     print(f"logged {len(arso)} ARSO + {len(fvg)} FVG + {len(pws)} PWS station readings")

@@ -12,14 +12,16 @@ It tracks two things per variable:
                       constant 28C all day can post a decent MAE while being
                       obviously wrong to anyone looking out of the window.
 
-Appends to data/verification.csv and rewrites data/verification_report.md.
+Recomputes completed days in data/verification.csv and rewrites the report.
 """
 import csv
 import json
 import os
 import sys
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from statistics import median
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(__file__))
 from config import TIMEZONE
@@ -45,7 +47,7 @@ SCORED_NETWORKS = ("arso", "wu")
 
 
 def load_observations():
-    """{date: {variable: {hour: median_value}}} from ARSO stations only.
+    """{date: {variable: {hour: median_value}}} from ARSO and Vipolže.
 
     Both logs are naive Europe/Ljubljana. That is only true for rows written
     after the astimezone fix in fetch_obs.py — earlier rows are UTC and would
@@ -73,8 +75,7 @@ def load_observations():
 
     out = defaultdict(lambda: defaultdict(dict))
     for (d, var, hour), values in per_hour.items():
-        values.sort()
-        out[d][var][hour] = values[len(values) // 2]  # median across stations
+        out[d][var][hour] = median(values)
     return out
 
 
@@ -118,41 +119,63 @@ def score_day(day, published, observed):
     return rows
 
 
-def append_rows(rows):
-    if not rows:
-        return
+def save_rows(rows, today):
+    """Update completed days; retain older scores when their logs are unavailable."""
     fields = ["date", "variable", "n_hours", "mae", "forecast_range", "observed_range", "range_error"]
-    existing = set()
+    existing = {}
     if os.path.exists(VERIFY_CSV):
         with open(VERIFY_CSV) as f:
-            existing = {(r["date"], r["variable"]) for r in csv.DictReader(f)}
-    fresh = [r for r in rows if (r["date"], r["variable"]) not in existing]
-    if not fresh:
-        return
+            existing = {(r["date"], r["variable"]): r for r in csv.DictReader(f)}
+    completed_before = today.isoformat()
+    merged = {key: row for key, row in existing.items() if key[0] < completed_before}
+    added = updated = 0
+    removed = len(existing) - len(merged)
+    for row in rows:
+        if row["date"] >= completed_before:
+            continue
+        key = (row["date"], row["variable"])
+        row = {field: str(row[field]) for field in fields}
+        if key not in merged:
+            added += 1
+        elif row != merged[key]:
+            updated += 1
+        merged[key] = row
+    if not (added or updated or removed):
+        return 0, 0, 0
     os.makedirs(DATA_DIR, exist_ok=True)
-    is_new = not os.path.exists(VERIFY_CSV)
-    with open(VERIFY_CSV, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        if is_new:
+    tmp = VERIFY_CSV + ".tmp"
+    try:
+        with open(tmp, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
             w.writeheader()
-        w.writerows(fresh)
-    return len(fresh)
+            w.writerows(merged[key] for key in sorted(merged))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, VERIFY_CSV)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    return added, updated, removed
 
 
-def write_report():
-    cutoff = (date.today() - timedelta(days=REPORT_DAYS)).isoformat()
+def write_report(today):
+    cutoff = (today - timedelta(days=REPORT_DAYS)).isoformat()
     per_var = defaultdict(list)
     if os.path.exists(VERIFY_CSV):
         with open(VERIFY_CSV) as f:
             for r in csv.DictReader(f):
-                if r["date"] >= cutoff:
+                if cutoff <= r["date"] < today.isoformat():
                     per_var[r["variable"]].append(r)
 
     lines = [
         "# Verification report", "",
-        f"Rolling {REPORT_DAYS} days, scored against **real ARSO station readings** "
-        "(Bilje / Nova Gorica median) — not ERA5, so unlike backtest_report.md this "
+        f"Last {REPORT_DAYS} completed Europe/Ljubljana calendar days, scored against "
+        "**real ARSO / Vipolže station readings** (median of available readings) "
+        "— not ERA5, so unlike backtest_report.md this "
         "carries no ECMWF self-grading bias.", "",
+        "Scores use overlapping forecast and observation hours, with at least four "
+        "required per day. `n_hours` shows coverage; a completed calendar day does "
+        "not imply that all 24 hours were observed.", "",
         "`range_error` = our daily swing minus the measured one. Persistent "
         "negative values mean the forecast is flattening (under-predicting how much "
         "the temperature moves), which plain MAE can hide.", "",
@@ -185,21 +208,25 @@ def write_report():
 
 
 def main():
+    today = datetime.now(ZoneInfo(TIMEZONE)).date()
     observations = load_observations()
     published = load_published()
     if not observations or not published:
         print("verify: not enough logged data yet (need both published forecasts "
               "and station observations)", file=sys.stderr)
-        write_report()
+        save_rows([], today)
+        write_report(today)
         return
 
     rows = []
     for day in sorted(set(observations) & set(published)):
-        rows += score_day(day, published[day], observations[day])
+        if day < today.isoformat():
+            rows += score_day(day, published[day], observations[day])
 
-    added = append_rows(rows) or 0
-    write_report()
-    print(f"verify: scored {len(rows)} variable-days ({added} new), wrote {VERIFY_REPORT}")
+    added, updated, removed = save_rows(rows, today)
+    write_report(today)
+    print(f"verify: scored {len(rows)} completed variable-days "
+          f"({added} new, {updated} updated, {removed} incomplete removed), wrote {VERIFY_REPORT}")
 
 
 if __name__ == "__main__":

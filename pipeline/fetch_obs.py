@@ -354,7 +354,7 @@ def current_hour_icon_uv(now_dt):
     return "cloud", 0
 
 
-def write_now_json(now_dt, zdaj, stations_used, hourly=None):
+def write_now_json(now_dt, zdaj, stations_used, hourly=None, *, observed_at=None):
     icon, uv = None, None
     if hourly is not None:
         code = _model_at(hourly, "weather_code", now_dt)
@@ -377,6 +377,9 @@ def write_now_json(now_dt, zdaj, stations_used, hourly=None):
         # station reading. now_dt stays naive everywhere else: the rest of this
         # file does arithmetic against other naive datetimes.
         "measured_at": now_dt.replace(tzinfo=ZoneInfo(TIMEZONE)).isoformat(),
+        # Keep publication time for compatibility; expose station time separately.
+        "observed_at": (observed_at.replace(tzinfo=ZoneInfo(TIMEZONE)).isoformat()
+                        if stations_used and observed_at is not None else None),
         "t": zdaj.get("temperature_2m"),
         "rh": zdaj.get("relative_humidity_2m"),
         "wind_kmh": zdaj.get("wind_speed_10m"),
@@ -406,7 +409,7 @@ def main():
         zdaj, stations_used, latest_obs_time = compute_zdaj(now_dt, {**arso, **pws})
         hourly = fetch_model_hourly(now_dt)
         zdaj = apply_lag_correction(zdaj, latest_obs_time, now_dt, hourly)
-        write_now_json(now_dt, zdaj, stations_used, hourly)
+        write_now_json(now_dt, zdaj, stations_used, hourly, observed_at=latest_obs_time)
         print(f"zdaj: {zdaj} from {stations_used} (obs {latest_obs_time})")
 
     print(f"logged {len(arso)} ARSO + {len(fvg)} FVG + {len(pws)} PWS station readings")

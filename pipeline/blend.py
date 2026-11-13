@@ -132,7 +132,10 @@ def fetch_open_meteo(now_dt):
     }
     # One call is the whole published forecast. get_json sleeps on 429/5xx
     # (forecast #237 retried only by raising the timeout, which does nothing).
-    data = get_json(OPEN_METEO_URL, params, timeouts=(30, 60, 90))
+    data = get_json(
+        OPEN_METEO_URL, params, timeouts=(30, 60, 90),
+        snapshot_path=os.environ.get("FORECAST_SNAPSHOT"),
+    )
     return data
 
 

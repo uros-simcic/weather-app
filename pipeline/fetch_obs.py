@@ -23,7 +23,7 @@ from config import (
     ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
     ELEVATION, FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS,
     LAT, LON, OPEN_METEO_URL, TIMEZONE,
-    WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL, WU_PWS_WEB_KEY,
+    WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL,
 )
 from features import wmo_to_icon
 from om_http import get_json
@@ -126,15 +126,22 @@ def fetch_vipolze():
     Its rain gauge is logged but not yet used anywhere. Any failure returns
     nothing rather than a partial reading, never guessed (§7.10).
     """
+    api_key = os.environ.get("WU_PWS_API_KEY", "").strip()
+    if not api_key:
+        print("vipolze: WU_PWS_API_KEY is not configured, skipping", file=sys.stderr)
+        return {}
     try:
         resp = requests.get(WU_PWS_URL, params={
             "stationId": WU_PWS_STATION, "format": "json",
-            "units": "m", "apiKey": WU_PWS_WEB_KEY,
+            "units": "m", "apiKey": api_key,
         }, timeout=20)
         resp.raise_for_status()
         observations = resp.json().get("observations") or []
     except (requests.RequestException, ValueError) as e:
-        print(f"vipolze: request failed, skipping ({e})", file=sys.stderr)
+        # Request exceptions can contain the full URL, including the API key.
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        detail = f"HTTP {status}" if status is not None else type(e).__name__
+        print(f"vipolze: request failed, skipping ({detail})", file=sys.stderr)
         return {}
     if not observations:
         print("vipolze: no observation returned", file=sys.stderr)

@@ -58,11 +58,12 @@ def load_observations():
     per_hour = defaultdict(list)
     with open(OBS_LOG) as f:
         for r in csv.DictReader(f):
-            # The same sources zdaj is built from, so what the forecast is
-            # scored against is what the app actually showed — Vipolže included,
-            # since it is the only station in Brda. FVG is still excluded: its
-            # 24h no-republish clause makes it training-only.
+            # Preserve the scoring target while expanding current conditions.
+            # Vedrijan target integration requires a separate evaluation decision.
+            # FVG remains excluded under its real-time republication restriction.
             if r.get("network") not in SCORED_NETWORKS:
+                continue
+            if r.get("station") == "VEDRIJAN":
                 continue
             try:
                 dt = datetime.fromisoformat(r["obs_time"])

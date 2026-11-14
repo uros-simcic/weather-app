@@ -36,8 +36,9 @@ ARSO_OBS_URL_TEMPLATE = (
 )
 ARSO_STATION_BILJE = "M402"        # 55m, ~13-14km from Brda (valley)
 ARSO_STATION_NOVA_GORICA = "E421"  # 113m, ~9-10km from Brda (valley)
+ARSO_STATION_VEDRIJAN = "M478"     # 231m, inside Brda; no wind readings
 
-# The only station actually in Brda: a personal weather station at Vipolže,
+# Optional personal weather station at Vipolže, inside Brda:
 # 45.976/13.537, ~2.5km from our point against 9-14km for the two ARSO ones.
 # Included in zdaj when fresh. fetch_obs reads an authorized WU_PWS_API_KEY
 # from the environment; a missing or rejected key leaves the ARSO sources usable.

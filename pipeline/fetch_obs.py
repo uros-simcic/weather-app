@@ -21,6 +21,7 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from config import (
     ARSO_OBS_URL_TEMPLATE, ARSO_STATION_BILJE, ARSO_STATION_NOVA_GORICA,
+    ARSO_STATION_VEDRIJAN,
     ELEVATION, FVG_OBS_URL_TEMPLATE, FVG_STATION_CAPRIVA, FVG_STATION_CORMONS,
     LAT, LON, OPEN_METEO_URL, TIMEZONE,
     WU_PWS_NAME, WU_PWS_STATION, WU_PWS_URL,
@@ -84,7 +85,8 @@ def fetch_arso_stations(now_dt):
         print("arso obs: no bucket found in the last 2 hours", file=sys.stderr)
         return {}
 
-    wanted = {ARSO_STATION_BILJE: "BILJE", ARSO_STATION_NOVA_GORICA: "NOVA_GORICA"}
+    wanted = {ARSO_STATION_BILJE: "BILJE", ARSO_STATION_NOVA_GORICA: "NOVA_GORICA",
+              ARSO_STATION_VEDRIJAN: "VEDRIJAN"}
     out = {}
     for feature in data.get("features", []):
         props = feature["properties"]
@@ -119,7 +121,7 @@ def fetch_arso_stations(now_dt):
 
 
 def fetch_vipolze():
-    """The Vipolže personal weather station, the only one inside Brda.
+    """The optional Vipolže personal weather station inside Brda.
 
     Joins the ARSO pair in the zdaj median for temperature and humidity. It
     reports no usable wind and UV comes back null, so those stay ARSO-only.
@@ -265,11 +267,11 @@ def build_log_rows(now_dt, arso, fvg, pws=None):
 
 
 def compute_zdaj(now_dt, stations):
-    """Staleness + sanity-bounded median across Bilje, Nova Gorica and Vipolže.
+    """Staleness + sanity-bounded median across available ARSO and Vipolže readings.
 
-    Vipolže is the only one inside Brda; the ARSO pair are 9-14km away in the
-    valley. It reports no wind, and a variable a station does not report is
-    skipped below, so wind stays an ARSO figure on its own.
+    Vedrijan and Vipolže are inside Brda; Bilje and Nova Gorica are valley
+    proxies. Missing variables are skipped, so neither Vedrijan nor Vipolže
+    contributes a fabricated wind reading.
     """
     fresh = {}
     for station, readings in stations.items():

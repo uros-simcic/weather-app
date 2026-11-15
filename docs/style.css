@@ -301,8 +301,8 @@ body {
 
   /* One 800px column for everything. 800px is the ceiling worth using: the
      satellite video is natively 800x600 (so it renders 1:1) and the radar GIF
-     821x660 — going wider would upscale both into blur. It also lands within
-     ~10px of the day-row width, so images and cells share an edge. */
+     821x660 — going wider would upscale both into blur. The week cards fill this
+     same column so their outside edges align with the image panels. */
   .header,
   .stale-banner,
   .hail-pill,
@@ -324,6 +324,9 @@ body {
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* Seven week cards fill the column; shorter today rows keep their card width. */
+  #week-row .cell { flex-grow: 1; }
 
   /* Slightly under the 16px hail pill, with Brda a touch larger than the rest. */
   .header { font-size: 14px; }

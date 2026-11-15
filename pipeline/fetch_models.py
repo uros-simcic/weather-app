@@ -23,7 +23,7 @@ from config import (
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 LOG_PATH = os.path.join(DATA_DIR, "log_forecasts.csv")
-CSV_FIELDS = ["run_time", "member", "lead_hours", "variable", "value"]
+CSV_FIELDS = ["run_time", "member", "lead_hours", "variable", "value", "valid_time"]
 
 # ARSO field -> our canonical variable name
 ARSO_VAR_MAP = {
@@ -56,11 +56,35 @@ PRO_VREME_ROW_MAP = {
 LOG_RETENTION_DAYS = 30
 
 
+def ensure_log_schema():
+    """Add an empty valid_time column to legacy rows without inventing times."""
+    if not os.path.exists(LOG_PATH) or os.path.getsize(LOG_PATH) == 0:
+        return
+    tmp = LOG_PATH + ".schema.tmp"
+    try:
+        with open(LOG_PATH, newline="") as src:
+            reader = csv.DictReader(src)
+            if reader.fieldnames == CSV_FIELDS:
+                return
+            if reader.fieldnames != CSV_FIELDS[:-1]:
+                raise ValueError("unexpected forecast log columns; original file preserved")
+            with open(tmp, "w", newline="") as dst:
+                writer = csv.DictWriter(dst, fieldnames=CSV_FIELDS)
+                writer.writeheader()
+                writer.writerows(reader)
+        os.replace(tmp, LOG_PATH)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+
 def append_rows(rows):
     if not rows:
         return
     os.makedirs(DATA_DIR, exist_ok=True)
-    is_new = not os.path.exists(LOG_PATH)
+    ensure_log_schema()
+    is_new = not os.path.exists(LOG_PATH) or os.path.getsize(LOG_PATH) == 0
     with open(LOG_PATH, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         if is_new:
@@ -141,7 +165,8 @@ def fetch_open_meteo(run_time, run_dt):
                     continue
                 lead_hours = round((datetime.fromisoformat(t) - run_dt).total_seconds() / 3600)
                 rows.append({"run_time": run_time, "member": model,
-                             "lead_hours": lead_hours, "variable": var, "value": v})
+                             "lead_hours": lead_hours, "variable": var, "value": v,
+                             "valid_time": t})
     return rows
 
 
@@ -182,7 +207,8 @@ def fetch_arso(run_time, run_dt):
             except ValueError:
                 continue
             rows.append({"run_time": run_time, "member": "arso",
-                         "lead_hours": lead_hours, "variable": var, "value": value})
+                         "lead_hours": lead_hours, "variable": var, "value": value,
+                         "valid_time": valid})
     return rows
 
 

@@ -8,6 +8,11 @@ on:
     # the models publish new runs through the day anyway.
     - cron: "30 4,10,16,22 * * *"
   workflow_dispatch:
+    inputs:
+      validate_only:
+        description: "Run pipeline without committing or publishing data"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -36,6 +41,36 @@ jobs:
         run: echo "FORECAST_SNAPSHOT=$RUNNER_TEMP/weather-forecast-source.json" >> "$GITHUB_ENV"
 
       - run: python3 pipeline/fetch_models.py
+
+      - name: Check forecast valid-time log
+        if: github.event_name == 'workflow_dispatch' && inputs.validate_only
+        run: |
+          python3 - <<'PY'
+          import csv
+          from datetime import datetime
+          from pipeline.config import OPEN_METEO_MODELS
+          expected_members = set(OPEN_METEO_MODELS) | {"arso"}
+          total = stamped = latest_stamped = 0
+          latest = ""
+          with open("data/log_forecasts.csv", newline="") as handle:
+              reader = csv.DictReader(handle)
+              assert "valid_time" in reader.fieldnames, "valid_time column missing"
+              for row in reader:
+                  total += 1
+                  run = row["run_time"]
+                  if run > latest:
+                      latest, latest_stamped = run, 0
+                  valid = row["valid_time"]
+                  if valid:
+                      datetime.fromisoformat(valid)
+                      stamped += 1
+                      if run == latest and row["member"] in expected_members:
+                          latest_stamped += 1
+          assert latest_stamped, "latest run has no timestamped model forecasts"
+          print(f"timestamp validation: {total} retained rows; {stamped} timestamped; "
+                f"{latest_stamped} timestamped model rows in latest run")
+          PY
+
       # --latest so this run also refreshes docs/now.json. It was already
       # fetching the observations and throwing the zdaj half away, while
       # now.yml's every-30-min schedule is dropped so hard by GitHub that the
@@ -73,7 +108,7 @@ jobs:
       # 30 min, so a plain push loses the race (real failure on 2026-07-22
       # left forecast.json stale a whole day).
       - name: Commit changed files
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || !inputs.validate_only)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

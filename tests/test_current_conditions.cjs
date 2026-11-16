@@ -39,7 +39,7 @@ test('stale station data renders a visibly labelled forecast fallback', async ()
     { measured_at: new Date(now - 121 * 60000).toISOString(), t: 10, source: 'stations' } });
   await ctx.loadAndRender();
   assert.equal(ctx.rendered.t, 14);
-  assert.equal(ctx.currentConditionsLabel(ctx.rendered), 'napoved');
+  assert.equal(ctx.currentConditionsLabel(ctx.rendered), 'danes');
 });
 
 test('fresh model fallback is also labelled as forecast', async () => {
@@ -47,7 +47,7 @@ test('fresh model fallback is also labelled as forecast', async () => {
   ctx.fetchJson = async (name) => ({ value: name === 'forecast.json' ? {} :
     { measured_at: new Date().toISOString(), t: 14, source: 'model_fallback' } });
   await ctx.loadAndRender();
-  assert.equal(ctx.currentConditionsLabel(ctx.rendered), 'napoved');
+  assert.equal(ctx.currentConditionsLabel(ctx.rendered), 'danes');
 });
 
 test('missing readings and no current forecast block do not invent current conditions', async () => {

@@ -36,24 +36,13 @@ not per-point numeric values. It is logged as supplementary metadata and is
 
 ### §4.2 Observations
 
-Current conditions are the median across three stations:
+Current conditions combine available observations from Bilje, Nova Gorica and
+Vedrijan. Readings are checked for freshness and combined separately for each
+weather variable. Temperature and humidity can be adjusted using the forecast's
+trend.
 
-| Station | Network | Elevation | Distance | Supplies |
-|---|---|---|---|---|
-| Bilje | ARSO | 55 m | ~13–14 km | all variables |
-| Nova Gorica | ARSO | 113 m | ~9–10 km | all variables |
-| Vipolže (IBRDAM11) | personal station | self-reported 37 m | ~2.5 km | temperature, humidity |
-
-Vipolže is the only station inside Brda; the ARSO pair are in the valley. It
-reports no usable wind, so wind is an ARSO figure alone — a variable a station
-does not report is simply absent from that variable's median.
-
-A reading older than **60 minutes** is dropped before the median is taken. Wind
-direction is not medianed (the median of 350° and 10° is not 180°); it is taken
-from whichever fresh station reported most recently.
-
-ARSO publishes roughly two hours behind, so the median is lag-corrected along
-the models' own trend between the observation time and now.
+Station readings display `zdaj` with their observation time. Forecast fallback
+displays `danes`.
 
 FVG's stations (Capriva, Cormons) carry a 24-hour no-republish clause on
 real-time data. They are logged for **training and backtesting only and never

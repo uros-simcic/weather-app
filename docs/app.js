@@ -636,7 +636,7 @@ function renderStaleBanner(forecast) {
 // run); fall back to the current forecast block's values and say so in the
 // console, never silently show stale/wrong data as if it were fresh (§7.8).
 function currentConditionsLabel(now) {
-  if (now.source === 'model_fallback') return 'napoved';
+  if (now.source === 'model_fallback') return 'danes';
   const observed = now.observed_at ? new Date(now.observed_at) : null;
   if (!observed || !Number.isFinite(observed.getTime())) return 'zdaj';
   const time = observed.toLocaleTimeString('sl-SI', {

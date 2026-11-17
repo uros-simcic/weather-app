@@ -344,3 +344,6 @@ date,variable,n_hours,mae,forecast_range,observed_range,range_error
 2026-11-16,relative_humidity_2m,6,4.485,16.33,17.5,-1.17
 2026-11-16,temperature_2m,6,0.582,5.11,5.1,0.01
 2026-11-16,wind_speed_10m,6,2.227,4.6,2.0,2.6
+2026-11-17,relative_humidity_2m,5,5.634,17.12,3.5,13.62
+2026-11-17,temperature_2m,5,0.498,2.53,2.1,0.43
+2026-11-17,wind_speed_10m,5,1.35,1.86,4.0,-2.14

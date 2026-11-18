@@ -9,11 +9,12 @@ Scores use overlapping forecast and observation hours, with at least four requir
 ## relative_humidity_2m
 
 - days scored: **30**
-- mean MAE: **7.09**
-- mean range error: **-6.73** (negative = forecast too flat)
+- mean MAE: **7.00**
+- mean range error: **-5.90** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-11-18 | 6 | 3.377 | 11.74 | 1.5 | 10.24 |
 | 2026-11-17 | 5 | 5.634 | 17.12 | 3.5 | 13.62 |
 | 2026-11-16 | 6 | 4.485 | 16.33 | 17.5 | -1.17 |
 | 2026-11-15 | 7 | 14.089 | 21.16 | 21.5 | -0.34 |
@@ -43,16 +44,16 @@ Scores use overlapping forecast and observation hours, with at least four requir
 | 2026-10-22 | 10 | 10.272 | 48.28 | 47.5 | 0.78 |
 | 2026-10-21 | 9 | 5.93 | 16.34 | 10.0 | 6.34 |
 | 2026-10-20 | 9 | 6.606 | 14.46 | 20.0 | -5.54 |
-| 2026-10-19 | 11 | 5.898 | 34.74 | 49.5 | -14.76 |
 
 ## temperature_2m
 
 - days scored: **30**
-- mean MAE: **1.17**
-- mean range error: **-1.67** (negative = forecast too flat)
+- mean MAE: **1.14**
+- mean range error: **-1.38** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-11-18 | 6 | 0.932 | 3.64 | 1.8 | 1.84 |
 | 2026-11-17 | 5 | 0.498 | 2.53 | 2.1 | 0.43 |
 | 2026-11-16 | 6 | 0.582 | 5.11 | 5.1 | 0.01 |
 | 2026-11-15 | 7 | 1.614 | 6.26 | 9.1 | -2.84 |
@@ -82,16 +83,16 @@ Scores use overlapping forecast and observation hours, with at least four requir
 | 2026-10-22 | 10 | 1.67 | 7.3 | 10.85 | -3.55 |
 | 2026-10-21 | 9 | 1.432 | 2.55 | 4.2 | -1.65 |
 | 2026-10-20 | 9 | 0.872 | 6.72 | 7.8 | -1.08 |
-| 2026-10-19 | 11 | 1.829 | 9.01 | 16.0 | -6.99 |
 
 ## wind_speed_10m
 
 - days scored: **30**
-- mean MAE: **3.65**
-- mean range error: **-1.41** (negative = forecast too flat)
+- mean MAE: **3.63**
+- mean range error: **-1.33** (negative = forecast too flat)
 
 | date | n_hours | mae | forecast_range | observed_range | range_error |
 |---|---|---|---|---|---|
+| 2026-11-18 | 6 | 1.092 | 5.14 | 2.5 | 2.64 |
 | 2026-11-17 | 5 | 1.35 | 1.86 | 4.0 | -2.14 |
 | 2026-11-16 | 6 | 2.227 | 4.6 | 2.0 | 2.6 |
 | 2026-11-15 | 7 | 3.054 | 8.12 | 3.5 | 4.62 |
@@ -121,4 +122,3 @@ Scores use overlapping forecast and observation hours, with at least four requir
 | 2026-10-22 | 10 | 3.399 | 6.67 | 14.0 | -7.33 |
 | 2026-10-21 | 9 | 4.418 | 3.5 | 10.0 | -6.5 |
 | 2026-10-20 | 9 | 2.049 | 3.46 | 5.0 | -1.54 |
-| 2026-10-19 | 8 | 1.72 | 4.66 | 4.5 | 0.16 |

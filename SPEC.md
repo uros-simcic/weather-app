@@ -1,15 +1,7 @@
 # Brda weather app — specification
 
-The original spec lived outside the repository, and the block grid drifted from
-it the moment the phasing changed (see §7.2). This file replaces it, kept beside
-the code so the two can be checked against each other.
-
-**Reconstructed from the implementation**, section numbers preserved so the
-`§` citations already in the source resolve here. Where the code and the earlier
-document disagreed, the code is what shipped and is what is written down.
-Sections not cited anywhere in the source are omitted rather than invented.
-
----
+The app combines regional and global forecasts with local station observations
+for Brda, Slovenia.
 
 ## §4 — Sources
 
@@ -44,14 +36,11 @@ trend.
 Station readings display `zdaj` with their observation time. Forecast fallback
 displays `danes`.
 
-FVG's stations (Capriva, Cormons) carry a 24-hour no-republish clause on
-real-time data. Their observations are logged for potential future training
-and backtesting and **never appear in the live figure**. Current model fitting
-uses the Open-Meteo archive, not these station observations; current station
-verification also excludes FVG.
+The app logs observations from Capriva and Cormons. Their 24-hour restriction
+on republication keeps them out of current conditions. Model fitting uses the
+Open-Meteo archive. Station verification excludes FVG observations.
 
-**Rainfall is logged, prepared for future integration.** Nothing reads it yet.
-Four quantities over four windows, kept under separate names:
+Station rainfall is logged under four separate fields:
 
 | Variable | Source | Meaning |
 |---|---|---|
@@ -60,11 +49,8 @@ Four quantities over four windows, kept under separate names:
 | `precipitation_rate` | Optional Vipolže station `precipRate` | instantaneous mm/h |
 | `precipitation_today` | Optional Vipolže station `precipTotal` | mm since local midnight |
 
-ARSO's `tp_1h_acc` and `tp_24h_acc` exist in the schema but are always empty, so
-no hourly station total is available from that source. Negative readings and
-anything above 200 mm are dropped rather than logged — a frozen or un-zeroed
-tipping bucket produces both, and a wrong number in the archive is worse than a
-missing one, because a correction fitted later cannot tell them apart.
+ARSO supplies no 1-hour or 24-hour rainfall totals in these observations.
+The logger discards negative rainfall values and values above 200.
 
 ### §4.4 Cross-check links
 
@@ -91,14 +77,11 @@ The learned blend **ships only where it measurably beats the equal-weight mean**
 otherwise the simpler blend is used, and `train.py` does not retrain a variable
 no cell ships ML for.
 
-Below **3 available members** the ML path is bypassed regardless of what was
-selected. Beyond ~5 days only ECMWF and GFS remain, and with the other four
-missing the tree collapses toward climatology — measured at 28–29 °C where the
-two live members said 34–40 °C.
+The forecast bypasses the learned blend when fewer than three members are
+available. Beyond about five days, only ECMWF and GFS remain.
 
-The reported winning score is **optimistic**: all candidates are scored on the
-same holdout the winner is chosen from, so the margin over the runner-up is the
-least trustworthy part of it. See `data/backtest_report.md`.
+The backtest selects and scores the winning method on the same holdout, which
+can make the reported error optimistic. See `data/backtest_report.md`.
 
 ---
 
@@ -124,32 +107,16 @@ A day is **eight 3-hour blocks running midnight to midnight**:
 00-03  03-06  06-09  09-12  12-15  15-18  18-21  21-00
 ```
 
-Every block belongs entirely to its own calendar day. None crosses midnight, and
-a day's last block ends exactly where the next day's first begins — no hour is
-covered twice and none is missed.
-
-> **Changed.** The grid was previously phased to 23:00 the previous evening,
-> giving every day a `23-02` block that belonged to the night before and leaving
-> nothing ending on midnight. A day could not then be shown without either
-> borrowing a block from its neighbour or leaving 23:00–midnight uncovered.
-
-The day's icon and rain probability summarise **daytime only, 06:00–20:59** —
-exactly blocks `06-09` through `18-21`. Using all 24 hours let a pre-dawn shower
-that had cleared by sunrise flip an otherwise sunny day to rain.
-
-Wind is the exception and stays whole-day: it answers "windiest it gets", not
-"how is the day".
-
-Block wind **direction** comes from the hour of that block's maximum speed, not
-from an average.
+The daily icon and rain probability cover **06:00–20:59**. Daily wind uses
+the highest speed over all eight blocks. Each block takes its wind direction
+from the hour with the highest wind speed in that block.
 
 Icon severity, most severe first:
 
 `storm` > `snow` > `rain` > `fog` > `cloud` > `partly` > `sun`
 
-A day takes the most severe icon among its daytime hours. Weather codes are
-categorical and are **never averaged** — two members forecasting rain (63 and
-81) average to 72, a snow code.
+The daily icon uses the most severe icon among the daytime hours. The app
+treats weather codes as categories.
 
 ### §7.5 Weather codes, rain probability, UV
 
@@ -166,15 +133,9 @@ WMO code → icon:
 | 95–99 | storm |
 | anything else | cloud |
 
-Rain probability is shown only at **≥ 30 %**, rounded to the nearest 5, and is
-**capped at 95 %** — never 99 or 100. On 2026-07-26 both probability-carrying
-members said 98–100 % and the stations measured 0.0 mm under a sunny sky; a
-summer convective bust is ordinary meteorology, and claiming certainty about it
-is not.
-
-Only ECMWF and GFS publish a probability at all, so it is combined with the
-share of *all* members forecasting measurable rain (≥ 0.1 mm/h) — otherwise the
-figure came from the two coarsest members exactly when terrain matters most.
+The app combines ECMWF and GFS rain probabilities with the share of available
+members forecasting at least 0.1 mm/h. It displays probabilities of **30% or
+higher**, rounds to the nearest 5 percentage points and caps the result at **95%**.
 
 ### §7.8 Never present stale data as current
 

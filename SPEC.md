@@ -45,8 +45,10 @@ Station readings display `zdaj` with their observation time. Forecast fallback
 displays `danes`.
 
 FVG's stations (Capriva, Cormons) carry a 24-hour no-republish clause on
-real-time data. They are logged for **training and backtesting only and never
-appear in the live figure**.
+real-time data. Their observations are logged for potential future training
+and backtesting and **never appear in the live figure**. Current model fitting
+uses the Open-Meteo archive, not these station observations; current station
+verification also excludes FVG.
 
 **Rainfall is logged, prepared for future integration.** Nothing reads it yet.
 Four quantities over four windows, kept under separate names:
@@ -55,8 +57,8 @@ Four quantities over four windows, kept under separate names:
 |---|---|---|
 | `precipitation_10min` | ARSO `tp_acc` | mm in the 10-minute interval, recorded only when the entry's own `interval` field says 10 |
 | `precipitation_12h` | ARSO `tp_12h_acc` | mm in the rolling 12 hours |
-| `precipitation_rate` | Vipolže `precipRate` | instantaneous mm/h |
-| `precipitation_today` | Vipolže `precipTotal` | mm since local midnight |
+| `precipitation_rate` | Optional Vipolže station `precipRate` | instantaneous mm/h |
+| `precipitation_today` | Optional Vipolže station `precipTotal` | mm since local midnight |
 
 ARSO's `tp_1h_acc` and `tp_24h_acc` exist in the schema but are always empty, so
 no hourly station total is available from that source. Negative readings and
@@ -106,9 +108,9 @@ Four variables are corrected and scored:
 
 `temperature_2m` · `relative_humidity_2m` · `wind_speed_10m` · `precipitation`
 
-Training uses at least 12 months of archived forecasts (13 are fetched, for
-margin) with a **temporal** train/holdout split of the most recent 12 weeks —
-never a random split.
+Backtesting and model fitting use archived Open-Meteo forecasts and weather
+records. Backtesting holds out the most recent 12 weeks in time order. The
+production model is fitted on all available rows in its archive window.
 
 ---
 
@@ -176,9 +178,9 @@ figure came from the two coarsest members exactly when terrain matters most.
 
 ### §7.8 Never present stale data as current
 
-If `now.json` is missing, unparseable, or its reading is more than **120 minutes**
-old, the app falls back to the forecast block covering the current time rather
-than showing a stale measurement as if it were fresh. A forecast older than
+If `now.json` is missing, unparseable, lacks a numeric temperature, or was
+generated more than **120 minutes** ago, the app uses the forecast block
+covering the current time when one is available. A forecast older than
 **24 hours** raises a staleness banner.
 
 Timestamps are published with their UTC offset so a reading's age cannot be

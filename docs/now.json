@@ -1,15 +1,16 @@
 {
-  "measured_at": "2026-11-22T18:38:00+01:00",
-  "observed_at": "2026-11-22T18:30:00+01:00",
-  "t": 8.8,
-  "rh": 94.0,
-  "wind_kmh": 6.0,
-  "wind_dir": 8.0,
-  "icon": "rain",
+  "measured_at": "2026-11-22T22:57:00+01:00",
+  "observed_at": "2026-11-22T22:50:00+01:00",
+  "t": 8.6,
+  "rh": 84.5,
+  "wind_kmh": 5.0,
+  "wind_dir": 128.0,
+  "icon": "cloud",
   "uv": 0,
   "source": "stations",
   "stations_used": [
-    "NOVA_GORICA"
+    "NOVA_GORICA",
+    "VEDRIJAN"
   ],
   "hail": {
     "status": "none"

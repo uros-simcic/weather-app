@@ -350,15 +350,17 @@ def build_blocks(blended, target_date):
         for h in range(3):
             t = (start + timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M")
             hours_in_block.append(t)
+        # Rain values describe the hour ending at each timestamp.
+        rain_hours = hours_in_block[1:] + [end.strftime("%Y-%m-%dT%H:%M")]
 
         temps = [blended["temperature_2m"][t] for t in hours_in_block if t in blended["temperature_2m"]]
         rhs = [blended["relative_humidity_2m"][t] for t in hours_in_block if t in blended["relative_humidity_2m"]]
         winds = [(blended["wind_speed_10m"].get(t), blended["wind_direction_10m"].get(t)) for t in hours_in_block]
         winds = [(s, d) for s, d in winds if s is not None]
-        precs = [blended["precipitation"][t] for t in hours_in_block if t in blended["precipitation"]]
+        precs = [blended["precipitation"][t] for t in rain_hours if t in blended["precipitation"]]
         codes = [blended["weather_code"][t] for t in hours_in_block if t in blended["weather_code"]]
         uvs = [blended["uv_index"][t] for t in hours_in_block if t in blended["uv_index"]]
-        pops = [blended["precipitation_probability"][t] for t in hours_in_block if t in blended["precipitation_probability"]]
+        pops = [blended["precipitation_probability"][t] for t in rain_hours if t in blended["precipitation_probability"]]
 
         precip_sum = round(sum(precs), 1) if precs else 0.0
         wind_kmh, wind_dir = (max(winds, key=lambda x: x[0]) if winds else (None, None))
@@ -400,13 +402,14 @@ def build_days(data, blended, decisions):
         # all 24h let a pre-dawn shower that's gone by sunrise flip the whole day
         # to "rain" at a high pop, contradicting an otherwise-sunny hourly view.
         # Wind stays whole-day: it answers "windiest it gets", not "how's the day".
-        def daytime(series):
+        def daytime(series, hours=range(6, 21)):
             return [v for t, v in series.items()
-                    if t.startswith(d) and 6 <= int(t[11:13]) < 21]
+                    if t.startswith(d) and int(t[11:13]) in hours]
 
-        precip_sum = sum(daytime(blended["precipitation"]))
+        rain_end_hours = range(7, 22)
+        precip_sum = sum(daytime(blended["precipitation"], rain_end_hours))
         codes_day = daytime(blended["weather_code"])
-        pops_day = daytime(blended["precipitation_probability"])
+        pops_day = daytime(blended["precipitation_probability"], rain_end_hours)
 
         winds_today = [(blended["wind_speed_10m"].get(t), blended["wind_direction_10m"].get(t))
                         for t in blended["wind_speed_10m"] if t.startswith(d)]

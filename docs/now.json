@@ -1,17 +1,15 @@
 {
-  "measured_at": "2026-11-24T02:03:00+01:00",
-  "observed_at": "2026-11-24T01:50:00+01:00",
-  "t": 4.5,
-  "rh": 68.0,
-  "wind_kmh": 3.5,
-  "wind_dir": 19.0,
+  "measured_at": "2026-11-24T03:59:00+01:00",
+  "observed_at": "2026-11-24T03:50:00+01:00",
+  "t": 2.4,
+  "rh": 86.0,
+  "wind_kmh": 2.0,
+  "wind_dir": 82.0,
   "icon": "sun",
   "uv": 0,
   "source": "stations",
   "stations_used": [
-    "BILJE",
-    "NOVA_GORICA",
-    "VEDRIJAN"
+    "NOVA_GORICA"
   ],
   "hail": {
     "status": "none"
